@@ -1,5 +1,5 @@
 #include "utility.h"
-#include <math.h>
+#include <cmath>
 
 void utility::mjd_dat(int &d, int &m, int &y, int64_t mjd)
 {

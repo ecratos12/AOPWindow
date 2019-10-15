@@ -53,8 +53,9 @@ double pot(double x, int l);
 /* utility classes */
 
 class File{
+public:
     File()=delete;
-    File(const std::string name, std::ios_base::openmode mode)
+    File(const std::string& name, std::ios_base::openmode mode)
         : _mode(mode),
           _name(name)
     {

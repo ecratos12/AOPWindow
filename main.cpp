@@ -2,9 +2,9 @@
 #include "windows.h"
 #include <conio.h>
 #include <utilapiset.h>
-#include <math.h>
-#include <stdio.h>
-#include <time.h>
+#include <cmath>
+#include <cstdio>
+#include <ctime>
 
 #include <utility.h>
 #include <qcustomplot/qcustomplot.h>
@@ -37,7 +37,7 @@ int copy_obs(int nr)
         n++;
         if (n == nr) {
             if (sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
-                        &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, &kodst, &namefe,
+                        &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe,
                         &npoint, &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor)!=18) {
                 obs_catalogue.close();
                 obs_catalogue_copy.close();
@@ -167,7 +167,7 @@ int cota_obs(int nr)
     std::string temp_line;
     while (std::getline(obs_catalogue, temp_line)) {
         sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
-                                   &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, &kodst, &namefe, &npoint,
+                                   &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe, &npoint,
                                    &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor);
         n++;
         if (n == nr) {
@@ -238,7 +238,7 @@ int cota_obs(int nr)
         n++;
         if (n == nr) {
             if (sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
-                        &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, &kodst, &namefe,
+                        &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe,
                         &npoint, &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor)!=18) {
                 std::cout << "\nERROR reading observations catalogue in cota_obs: line # " << n << std::endl;
                 obs_catalogue.close();
@@ -304,8 +304,8 @@ int list_cal(int nr1, int nr2)
                 return 1;
             }
             if (sscanf(temp_line.c_str(), utility::FormatKAT_KAL_R,
-                       &c,&nsta,&kodst,&nam,&mjd,&secday,&filtr,&meanval,&rms,&corect,&temp,&baro,&humid,
-                       &nflash, &nreturn,&weather,&numberpas,&coef,&skew,&kurt,&target,&namcal) != 22) {
+                       &c,&nsta,kodst,nam,&mjd,&secday,&filtr,&meanval,&rms,&corect,&temp,&baro,&humid,
+                       &nflash, &nreturn,&weather,&numberpas,&coef,&skew,&kurt,&target,namcal) != 22) {
                 std::cout << "ERROR in reading calibrations catalogue, line # " << n+1 << std::endl;
                 cal_catalogue.close();
                 return 5;
@@ -380,7 +380,7 @@ int list_obs(int nr1,int nr2)
                     std::cout << std::endl << " NR  WS  STATION      SAT    DATA     TIME BEGIN.    QUANT. Ind " << std::endl;
                 }
                 if (sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
-                           &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, &kodst, &namefe, &npoint,
+                           &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe, &npoint,
                            &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor) != 18) {
                     printf("%d %c %d %d %ld %ld %ld %d %2s %8s %d %lf %lf %d %lf %lf %lf %d %lf",
                            n, c, ws, ws1, mjd, secday, nsat, nsta, kodst, namefe, npoint,
@@ -557,7 +557,7 @@ int fit_cal(int nr)
         std::string temp_line;
         while (std::getline(target_cat, temp_line)) {
             temp_line = temp_line.substr(1);
-            sscanf(temp_line.c_str(), utility::FormatKAT_TAR_R, &kodst, &target);
+            sscanf(temp_line.c_str(), utility::FormatKAT_TAR_R, kodst, &target);
             if (!strcmp(kodst, nam)) {
                 i = 1;
                 break;
@@ -709,8 +709,8 @@ int fit_cal(int nr)
 
         if (n == nr) {
             if (sscanf(temp_line.c_str(), utility::FormatKAT_KAL_R,
-                       &c,&nsta,&kodst,&nam,&mjd,&secday,&filtr,&meanval,&rms,&corect,&temp,&baro,&humid,
-                       &nflash, &nreturn,&weather,&numberpas,&coef,&skew,&kurt,&target,&namcal) != 22) {
+                       &c,&nsta,kodst,nam,&mjd,&secday,&filtr,&meanval,&rms,&corect,&temp,&baro,&humid,
+                       &nflash, &nreturn,&weather,&numberpas,&coef,&skew,&kurt,&target,namcal) != 22) {
                 std::cout << "ERROR in reading calibrations catalogue, line # " << n+1 << std::endl;
                 cal_catalogue.close();
                 cal_catalogue_copy.close();
@@ -825,7 +825,7 @@ int stt_epaa(int64_t numpass)
             std::string temp_line;
             while (std::getline(obs_catalogue, temp_line)) {
                 sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
-                                        &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, &kodst, &namefe,
+                                        &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe,
                                         &npoint, &temp, &pres, &humid, &time_bias, &range_bias, &rms, &step_poly, &clock_cor);
                 ++n;
                 if (n==nr) {
@@ -976,7 +976,7 @@ int ffit_obs(int nr)
     std::string temp_line;
     while (std::getline(obs_catalogue, temp_line)) {
         sscanf(temp_line.c_str() , utility::FormatKAT_OBS_R,
-                                &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, &kodst, &namefe,
+                                &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe,
                                 &npoint, &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor);
         n++;
         if (n == nr) {
@@ -1095,7 +1095,7 @@ int ffit_obs(int nr)
         n++;
         if (n == nr) {
             if (sscanf(temp_line.c_str() , utility::FormatKAT_OBS_R,
-                        &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, &kodst, &namefe,
+                        &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe,
                         &npoint, &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor)!=18) {
                 obs_catalogue.close();
                 obs_catalogue_copy.close();
@@ -1167,7 +1167,7 @@ int pasint_a(int nr)
     std::string temp_line;
     while (std::getline(obs_catalogue, temp_line)) {
         sscanf(temp_line.c_str() , utility::FormatKAT_OBS_R,
-                                &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, &kodst, &namefe,
+                                &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe,
                                 &npoint, &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor);
         n++;
         if (n == nr) {
@@ -1385,7 +1385,7 @@ e303:	continue;
         char buf[256];
         if (n == nr) {
             if (sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
-                       &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, &kodst, &namefe, &npoint,
+                       &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe, &npoint,
                        &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor) != 18) {
                 std::cout << "\nERROR reading observations catalogue in pasint_a: line # " << n << std::endl;
                 obs_catalogue.close();
@@ -1469,7 +1469,7 @@ int pol_epaa(int nr)
     std::string temp_line;
     while (std::getline(obs_catalogue, temp_line)) {
         sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
-                                &_, &ws, &ws1, &mjd, &secday, &nsat, &nsta, &kodst, &namefe,
+                                &_, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe,
                                 &npoint, &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor);
         n++;
         if (n == nr) {
@@ -1763,7 +1763,7 @@ int pol_epaa(int nr)
         char buf[256];
         if (n == nr) {
             if (sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
-                       &_, &ws, &ws1, &mjd, &secday, &nsat, &nsta, &kodst, &namefe, &npoint,
+                       &_, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe, &npoint,
                        &temp, &pres, &humid, &TB, &RB, &sl, &jj, &clock_cor) != 18) {
                 std::cout << "\nERROR reading observations catalogue in pol_epaa: line # " << n << std::endl;
                 obs_catalogue.close();
@@ -1827,7 +1827,7 @@ int graf_ep0(int nr)
     std::string temp_line;
     while (std::getline(obs_catalogue, temp_line)) {
         sscanf(temp_line.c_str() , utility::FormatKAT_OBS_R,
-                                &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, &kodst, &namefe,
+                                &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe,
                                 &npoint, &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor);
         n++;
         if (n == nr) {
@@ -1995,7 +1995,7 @@ L_9:
         char buf[256];
         if (n == nr) {
             if (sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
-                       &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, &kodst, &namefe, &npoint,
+                       &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe, &npoint,
                        &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor) != 18) {
                 std::cout << "\nERROR reading observations catalogue in graf_ep0: line # " << n << std::endl;
                 obs_catalogue.close();
@@ -2067,7 +2067,7 @@ int del_npt(int nr)
     std::string temp_line;
     while (std::getline(obs_catalogue, temp_line)) {
         sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
-                                &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, &kodst, &namefe,
+                                &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe,
                                 &npoint, &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor);
         n++;
         if (n == nr) {
@@ -2294,7 +2294,7 @@ int del_npt(int nr)
         char buf[256];
         if (n == nr) {
             if (sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
-                       &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, &kodst, &namefe, &npoint,
+                       &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe, &npoint,
                        &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor) != 18) {
                 std::cout << "\nERROR reading observations catalogue in graf_ep0: line # " << n << std::endl;
                 obs_catalogue.close();
@@ -2371,7 +2371,7 @@ int cat_kboa(int64_t numpass)
     n = 0;
     while (std::getline(obs_catalogue, temp_line)) {
         sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
-                                &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, &kodst, &namefe,
+                                &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe,
                                 &npoint, &temp, &pres, &humid, &time_bias, &range_bias, &rms, &step_poly, &clock_cor);
         n++;
         if (n == nr) {
@@ -2472,9 +2472,9 @@ int cat_kboa(int64_t numpass)
         nr=0;
         j=-1;
         while(std::getline(cal_catalogue, temp_line)) {
-            sscanf(temp_line.c_str(), utility::FormatKAT_KAL_R, &c,&nsta,&kodst,&nam,&mjd1,&tim_st_cal,&filter1,&sk1,
+            sscanf(temp_line.c_str(), utility::FormatKAT_KAL_R, &c,&nsta,kodst,nam,&mjd1,&tim_st_cal,&filter1,&sk1,
                    &rmsk1,&corect1,&temp1,&press1,&humid1,&flash1,
-                   &good_flash1,&weather,&numberpas,&coef,&skew,&kurt,&target,&namcal);
+                   &good_flash1,&weather,&numberpas,&coef,&skew,&kurt,&target,namcal);
             nr++;
             if (nr == cal_before) {
                 j=1;
@@ -2509,9 +2509,9 @@ int cat_kboa(int64_t numpass)
         nr=0;
         j=-1;
         while(std::getline(cal_catalogue, temp_line)) {
-            sscanf(temp_line.c_str(), utility::FormatKAT_KAL_R, &c,&nsta,&kodst,&nam,&mjd1,&tim_st_cal,&filter1,&sk1,
+            sscanf(temp_line.c_str(), utility::FormatKAT_KAL_R, &c,&nsta,kodst,nam,&mjd1,&tim_st_cal,&filter1,&sk1,
                    &rmsk1,&corect1,&temp1,&press1,&humid1,&flash1,
-                   &good_flash1,&weather,&numberpas,&coef,&skew,&kurt,&target,&namcal);
+                   &good_flash1,&weather,&numberpas,&coef,&skew,&kurt,&target,namcal);
             nr++;
             if (nr == cal_before) {
                 j=1;
@@ -2900,8 +2900,8 @@ void nql_kbo(int64_t nr)
         j=-1;
         while(std::getline(kbo_catalogue, temp_line)) {
             sscanf(temp_line.c_str(), utility::FormatKAT_KBO_R,
-                   &c,&numpass,&nsat,&nsta,&kodst,&mjd,&secday,&temp,&pres,&humid,
-                   &npoint,&rms,&weather,&cal_before,&cal_after,&namefill,&clock_cor);
+                   &c,&numpass,&nsat,&nsta,kodst,&mjd,&secday,&temp,&pres,&humid,
+                   &npoint,&rms,&weather,&cal_before,&cal_after,namefill,&clock_cor);
             if (nr == numpass) {
                 j=1;
                 break;
@@ -2933,9 +2933,9 @@ void nql_kbo(int64_t nr)
             for(nr=1;nr<32000;nr++) {
                 std::getline(cal_catalogue, temp_line);
                 sscanf(temp_line.c_str(),utility::FormatKAT_KAL_R,
-                    &c,&nsta,&kodst,&nam,&mjd_c1,&tim_st_cal1,&filter1,&sk1,
+                    &c,&nsta,kodst,nam,&mjd_c1,&tim_st_cal1,&filter1,&sk1,
                     &rmsk1,&corecta,&temp_c,&press_c,&humid_c,&flash1,
-                    &gf,&weather,&namberpass,&coef_c,&skew1,&kurt1,&target_c1,&namcal);
+                    &gf,&weather,&namberpass,&coef_c,&skew1,&kurt1,&target_c1,namcal);
                     good_flash1=gf;
                     if(nr==cal_before) {
                         j=1;
@@ -2955,9 +2955,9 @@ void nql_kbo(int64_t nr)
             for(nr=1;nr<32000;nr++) {
                 std::getline(cal_catalogue, temp_line);
                 sscanf(temp_line.c_str(),utility::FormatKAT_KAL_R,
-                &c,&nsta,&kodst,&nam,&mjd_c2,&tim_st_cal2,&filter2,&sk2,
+                &c,&nsta,kodst,nam,&mjd_c2,&tim_st_cal2,&filter2,&sk2,
                 &rmsk2,&corectb,&temp_c,&press_c,&humid_c,&flash2,
-                &gf,&weather,&namberpass,&coef_c,&skew2,&kurt2,&target_c2,&namcal);
+                &gf,&weather,&namberpass,&coef_c,&skew2,&kurt2,&target_c2,namcal);
                 good_flash2=gf;
                 if(nr==cal_after) {
                     j=1;
