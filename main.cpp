@@ -6,67 +6,8 @@
 #include <stdio.h>
 #include <time.h>
 
-#include <fstream>
-#include <iostream>
-#include <string>
-
 #include <utility.h>
 #include <qcustomplot/qcustomplot.h>
-
-
-class File{
-    File()=delete;
-    File(const std::string name, std::ios_base::openmode mode)
-        : _mode(mode),
-          _name(name)
-    {
-        f.open(name, mode);
-        if (!f.is_open()) {
-            std::cout << "Unable to open file " << name << std::endl;
-            throw std::runtime_error("Could not open file!");
-        }
-    }
-
-    ~File()
-    {
-        f.close();
-    }
-
-    std::string getLine(int nr)
-    {
-        if (_mode != std::ios_base::in)
-            throw std::runtime_error("File not opened for reading");
-
-        f.seekg(0, std::ios_base::beg);
-        std::string temp;
-        for (int i=0; i<nr; i++) {
-            std::getline(f,temp);
-        }
-        f.seekg(0, std::ios_base::beg);
-        return temp;
-    }
-
-    bool writeSingleNumber(int n)
-    {
-        if (_mode != std::ios_base::out)
-            throw std::runtime_error("File not opened for writing");
-        f << n << std::endl;
-        return f.good();
-    }
-
-    bool readSingleNumber(int& n)
-    {
-        if (_mode != std::ios_base::in)
-            throw std::runtime_error("File not opened for reading");
-        f >> n;
-        return f.good();
-    }
-
-private:
-    std::fstream f;
-    std::ios_base::openmode _mode;
-    std::string _name;
-};
 
 
 int copy_obs(int nr)
