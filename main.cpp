@@ -9,6 +9,9 @@
 #include <utility.h>
 #include <qcustomplot/qcustomplot.h>
 
+#include <aopconsolewindow.h>
+#include <plot.h>
+#include <datamodels.h>
 
 int copy_obs(int nr)
 {
@@ -34,57 +37,43 @@ int copy_obs(int nr)
     j9 = 0;
     std::string temp_line;
     while (std::getline(obs_catalogue, temp_line)) {
+        obs_catalogue_copy << temp_line << std::endl;
         n++;
         if (n == nr) {
             if (sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
                         &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe,
                         &npoint, &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor)!=18) {
-                obs_catalogue.close();
-                obs_catalogue_copy.close();
                 std::cout << std::endl << "ERROR in reading OBS catalogue in copy_obs, line # " << n+1 << std::endl;
                 remove("D:\\LASER-2\\DATA\\KAT_OBS.ROB");
                 return 5;
             }
-            if (sprintf(name, "D:\\LASER-2\\DATA\\%8s.c%2s", namefe, kodst) == 0 ||
-                sprintf(nam, "D:\\LASER-2\\DATA\\%8s.o%2s", namefe, kodst)) {
-                obs_catalogue.close();
-                obs_catalogue_copy.close();
-                std::cout << "func. sprintf error in copy_obs!" << std::endl;
-                remove("D:\\LASER-2\\DATA\\KAT_OBS.ROB");
-                return 5;
-            }
+
+            sprintf(name, "D:\\LASER-2\\DATA\\%8s.c%2s", namefe, kodst);
+            sprintf(nam, "D:\\LASER-2\\DATA\\%8s.o%2s", namefe, kodst);
             std::ifstream obs(nam);
             if (!obs.is_open()) {
-                obs_catalogue.close();
-                obs_catalogue_copy.close();
                 std::cout << "Unable to open observation FILE : " << nam << std::endl;
+                obs_catalogue_copy.close();
                 remove("D:\\LASER-2\\DATA\\KAT_OBS.ROB");
                 return 5;
             }
             std::fstream obs_copy(name, std::ios_base::in);
             if (obs_copy.is_open()) {
-                obs_catalogue.close();
-                obs_catalogue_copy.close();
-                obs_copy.close();
-                obs.close();
                 std::cout << "Copy of this observation is present : " << nam << std::endl;
+                obs_catalogue_copy.close();
                 remove("D:\\LASER-2\\DATA\\KAT_OBS.ROB");
                 return 5;
             }
             obs_copy.open(name, std::ios_base::out);
             if (!obs_copy.is_open()) {
-                obs_catalogue.close();
                 obs_catalogue_copy.close();
-                obs.close();
-                std::cout << "Unable to open copy of this observation!" << std::endl;
+                std::cout << "Unable to write copy of this observation!" << std::endl;
                 remove("D:\\LASER-2\\DATA\\KAT_OBS.ROB");
                 return 5;
             }
             std::getline(obs, temp_line);
             if ((sscanf(temp_line.c_str(), utility::FormatOGA_R, &sec, &azym, &elev, &range, &ampl))!=5)	{
-                obs_catalogue.close();
                 obs_catalogue_copy.close();
-                obs.close();
                 obs_copy.close();
                 std::cout << "Error reading observation file " << nam << std::endl;
                 remove("D:\\LASER-2\\DATA\\KAT_OBS.ROB");
@@ -98,11 +87,9 @@ int copy_obs(int nr)
             secobs = static_cast<int64_t>(sec);
             j9 = 1;
             for (jj = 2; jj <= npoint; jj++) {
-                std::getline(obs, temp_line);
+                if (!std::getline(obs, temp_line)) break;
                 if ((sscanf(temp_line.c_str(), utility::FormatOGA_R, &sec1, &azym, &elev, &range, &ampl))!=5) {
-                    obs_catalogue.close();
                     obs_catalogue_copy.close();
-                    obs.close();
                     obs_copy.close();
                     std::cout << "Error reading observation file " << nam << std::endl;
                     remove("D:\\LASER-2\\DATA\\KAT_OBS.ROB");
@@ -114,7 +101,7 @@ int copy_obs(int nr)
                     sprintf(buf, utility::FormatCGA_W, sec1, azym, elev, range, range*0.5e-12*c_velosity, ampl);
                     obs_copy << buf << std::endl;
                 }
-                sec1 = sec;
+                sec = sec1;
             }
             obs.close();
             obs_copy.close();
@@ -128,8 +115,6 @@ int copy_obs(int nr)
             sprintf(buf, utility::FormatKAT_OBS_W, ws, ws1, mjd, secobs, nsat, nsta, kodst, namefe,
                     npoint, temp, pres, humid, TB, RB, RMS, POLY, clock_cor);
             obs_catalogue_copy << buf << std::endl; // ????????
-        } else {
-            obs_catalogue_copy << temp_line << std::endl;
         }
     }
     obs_catalogue.close();
@@ -148,7 +133,7 @@ int copy_obs(int nr)
 int cota_obs(int nr)
 {
     int	ampl, n, jj, ws, ws1, nsta, POLY, npoint, humid;
-    long int nsat, secday, mjd;
+    int64_t nsat, secday, mjd;
     double	rrr1, sec, azym, elev, range, range1, TB, RB, RMS, clock_cor, temp, pres;
     char	c, namefe[9], name[33], kodst[3];
 
@@ -188,9 +173,9 @@ int cota_obs(int nr)
 
     rrr1 = 0.; // 35.
     if (clock_cor != 0.) {
-        printf("Clock correction has entered = %8.1lf  \n", clock_cor);
+        printf("Clock correction was entered = %8.1lf  \n", clock_cor);
         printf("Program deleted old correction, and created new \n"
-                "Do you wish to enter new correction?    :\n");
+                "Do you want to enter new correction?    :\n");
 
         c = getch();
         if(c == 0x00)	c=getch();
@@ -328,7 +313,7 @@ int list_cal(int nr1, int nr2)
                 hour = static_cast<int>(secday/3600);
                 min = static_cast<int>(secday-static_cast<int64_t>(hour)*3600)/60;
 
-                printf("%3d %4d-%2d-%2d%3d:%2d%2d%9.3lf%5.1lf%7.2lf%5.1lf%7.1lf%3d%4d%4d%4ld%3d\n",
+                printf("%3d %4d-%2d-%2d%3d:%2d%2d%9.3lf%5.1lf%7.2lf%5.1lf%7.1lf%3d%4d%4d%4lld%3d\n",
                 n, y, m, d, hour, min, filtr, meanval, rms*15., corect, temp-273.15, baro, humid, nflash, nreturn, numberpas, coef);
             }
         } while (true);
@@ -382,7 +367,7 @@ int list_obs(int nr1,int nr2)
                 if (sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
                            &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe, &npoint,
                            &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor) != 18) {
-                    printf("%d %c %d %d %ld %ld %ld %d %2s %8s %d %lf %lf %d %lf %lf %lf %d %lf",
+                    printf("%d %c %d %d %lld %lld %lld %d %2s %8s %d %lf %lf %d %lf %lf %lf %d %lf",
                            n, c, ws, ws1, mjd, secday, nsat, nsta, kodst, namefe, npoint,
                            temp, pres, humid, TB, RB, RMS, POLY, clock_cor);
                     std::cout << std::endl << "ERROR in reading OBS catalogue in list_obs, line # " << n+1 << std::endl;
@@ -394,7 +379,7 @@ int list_obs(int nr1,int nr2)
                 hour = secday/3600LL;
                 min = (secday-hour*3600LL)/60LL;
                 sec = secday-hour*3600LL-min*60LL;
-                printf("%3d%3d  %5d     %8s %4d-%2d-%2d %3ld:%2ld:%2ld%10d",
+                printf("%3d%3d  %5d     %8s %4d-%2d-%2d %3lld:%2lld:%2lld%10d",
                        n, ws, nsta, namefe, y, m, d, hour, min, sec, npoint);
 
                 if (ws1 == -1)
@@ -508,9 +493,15 @@ int fit_cal(int nr)
         n = 0;
         jj = 0;
 
-        while (cal_catalogue.get() == 'e') {
-            cal_catalogue >> nsta >> kodst >> nam >> mjd >> secday >> filtr >> meanval >> rms >> corect >> temp >> baro
-                          >> humid >> nflash >> nreturn >> weather >> numberpas >> coef >> skew >> kurt >> target >> namcal;
+        std::string temp_line;
+        while (std::getline(cal_catalogue, temp_line)) {
+            if (sscanf(temp_line.c_str(), utility::FormatKAT_KAL_R,
+                       &c,&nsta,kodst,nam,&mjd,&secday,&filtr,&meanval,&rms,&corect,&temp,&baro,&humid,
+                       &nflash, &nreturn,&weather,&numberpas,&coef,&skew,&kurt,&target,namcal) != 22) {
+                std::cout << "ERROR in reading calibrations catalogue, line # " << n+1 << std::endl;
+                cal_catalogue.close();
+                return 5;
+            }
             n++;
             if (n == nr) {
                 jj = 1;
@@ -550,6 +541,8 @@ int fit_cal(int nr)
         return 5;
     }
 
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! NOT INCLUDED IN GUI VERSION
+
     std::ifstream target_cat("D:\\LASER-2\\DATA\\kat_tar.dic");
     if (target_cat.is_open()) {
         n = 0;
@@ -574,6 +567,8 @@ int fit_cal(int nr)
         std::cout << "No such target!" << std::endl;
         return 5;
     }
+
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! NOT INCLUDED IN GUI VERSION
 
     double sx = 7.5*(temp-273.1)/(237.3-(temp-273.1));
     double e = static_cast<double>(humid)*1.e-2*6.11*pow(10.,sx);
@@ -611,6 +606,10 @@ int fit_cal(int nr)
                 if (jj>=0 && jj<=18)
                     ntab[jj]++;
             }
+
+        for(i = 0,x = 0.;i < nreturn; i++)
+            if(icoef[i]==1) x += data[i];
+        x /= static_cast<double>(nret);
 
         for(i = 0, mi2 = 0., mi3 = 0., mi4 = 0.; i < nreturn; i++)
             if (icoef[i] == 1) {
@@ -667,7 +666,7 @@ int fit_cal(int nr)
             sx = rmss*2.;
 
             for(i = jj = 0, mean_val = 0; i < nreturn; i++)
-                if (icoef[i] == 1)
+                if (icoef[i] == 1) {
                     if (fabs(data[i] - meanvall) <= sx) {
                         jj++;
                         mean_val += data[i];
@@ -675,6 +674,7 @@ int fit_cal(int nr)
                     } else {
                         icoef[i] = 0;
                     }
+                }
             if (jj < nret) {
                 meanvall = mean_val / static_cast<double>(jj);
                 mean_val = 0;
@@ -792,8 +792,10 @@ void sound5()
 int stt_epaa(int64_t numpass)
 {
     int j, nr, nr1, nr_obs, cal_before, cal_after;
+    int ws, ws1, nsta, npoint, humid, step_poly;
     char namefe[9], c;
-    int64_t nsat = 0;
+    int64_t nsat = 0, secday, mjd;
+    double time_bias, range_bias, rms, clock_cor, temp, pres;
 
     while (true) {
         nr = -1;
@@ -816,7 +818,6 @@ int stt_epaa(int64_t numpass)
 
         nr_obs = nr;
         std::ifstream obs_catalogue("D:\\LASER-2\\DATA\\KAT_OBS.DIC");
-        int64_t ws, ws1 = 0, mjd, secday, nsta, npoint, humid, step_poly;
         double time_bias, range_bias, rms, clock_cor, temp, pres;
         bool isObsFound = false;
         char namefe[9], kodst[3];
@@ -1008,7 +1009,7 @@ int ffit_obs(int nr)
         std::cout << "No copy of such observation: " << name << std::endl;
         return 5;
     }
-    std::ofstream copy("D:\\LASER-2\\DATA\\kopia.rob"), derivatives_file(namm);
+    std::ofstream copy("D:\\LASER-2\\DATA\\copia.rob"), derivatives_file(namm);
     if (!copy.is_open()) {
         std::cout << "Unable to open working file!" << std::endl;
         return 5;
@@ -1113,7 +1114,7 @@ int ffit_obs(int nr)
             if(( fabs(secstart-secobs) ) > 80000.) mjd++;
             char buf[256];
             sprintf(buf, utility::FormatKAT_OBS_W,
-                        ws, ws1, mjd, secobs, nsat, nsta, kodst, namefe, npoint, temp, pres, humid, TB,
+                        ws, ws1, mjd, secday, nsat, nsta, kodst, namefe, npoint, temp, pres, humid, TB,
                         RB, RMS, POLY, clock_cor);
             obs_catalogue_copy << buf << std::endl;
         } else {
@@ -1136,12 +1137,551 @@ int ffit_obs(int nr)
 
 int plo_fita(int nr)
 {
+    int      kk,n,jj,ws,ws1,nsta,x,y,POLY,points,humid,j;
+    int	     day,month,year,hour,min,sek,jstep,jend,NSTA,normx,normy;
+    int      OP[6],i,xe,ye,xb,yb,j9,h,r,kod,ss2;
+    int64_t  mjd,secday,nsat,NSAT,secobs;
+    double   sec,omc,omcplus,omcminus,tbrb,czeb,time,omcskala,timskala;
+    double   temp,pres,TB,RB,RMS,clock_cor,x1,s2,s1;
+    char     c,namefe[9],namm[33],kodst[3],NAMSTAC[12];
+    char	    NAMSAT[12],NAMSYM[3],nam[3],name[33],linia[135];
+    char     header1[81],header2[81],ss[20],msg[5],msc[5];
 
+    tbrb = czeb = 0.;
+    n = jj = 0;
+    std::ofstream result("D:\\LASER-2\\DATA\\RESULT.DAT");
+    std::ifstream obs_catalogue("D:\\LASER-2\\DATA\\KAT_OBS.DIC");
+    if (!obs_catalogue.is_open()) {
+        std::cout << "Unable to open observations catalogue!" << std::endl;
+        result << "0" << std::endl;
+        return 5;
+    }
+    std::string temp_line;
+    while (std::getline(obs_catalogue, temp_line)) {
+        sscanf(temp_line.c_str() , utility::FormatKAT_OBS_R,
+                                &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe,
+                                &points, &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor);
+        n++;
+        if (n == nr) {
+            jj = -1;
+            break;
+        }
+    }
+    obs_catalogue.close();
+    if (jj == 0) {
+        std::cout << "No such observation in the catalogue!" << std::endl;
+        result << "0" << std::endl;
+        return 5;
+    }
+    if (ws1 == -1) {
+        std::cout << "Please, do this on copy." << std::endl;
+        result << "0" << std::endl;
+        return 5;
+    }
+    if (ws1 == 0) {
+        std::cout << "This copy hasn't been filtered yet!" << std::endl;
+        result << "0" << std::endl;
+        return 5;
+    }
+    if (points > 10001) {
+        std::cout << "Too many points, MAX = 10000!" << std::endl;
+        result << "0" << std::endl;
+        return 5;
+    }
+
+    std::ifstream param_dat("D:\\LASER-2\\DATA\\PARAM.DAT");
+    if (!param_dat.is_open()) {
+        std::cout << "Unable to open PARAM.DAT!" << std::endl;
+        result << "0" << std::endl;
+        return 5;
+    }
+    param_dat >> kk;
+    param_dat.close();
+    if(kk == 2 && ws < 2) {
+        std::cout << "Time and Range Bias haven't been calculated yet!" << std::endl;
+        result << "0" << std::endl;
+        return 5;
+    }
+    if(kk == 3 && ws != 3) {
+        std::cout << "Polynomials haven't been calculated yet!" << std::endl;
+        result << "0" << std::endl;
+        return 5;
+    }
+
+    std::ifstream station("D:\\LASER-2\\DATA\\STATION");
+    if (!station.is_open()) {
+        std::cout << "Unable to open file station !" << std::endl;
+        result << "0" << std::endl;
+        return 5;
+    }
+    jj = 0;
+    std::getline(station, temp_line);
+    sscanf(temp_line.c_str(), "%s%d%d%d%d", &NAMSTAC,&NSTA,&ss2,&ss2,&ss2);
+    station.close();
+    if (nsta == NSTA) jj = 1;
+    if (jj == 0) {
+        std::cout << "\n NO STATION  : " << nsta << " IN THE STATION CATALOGUE !\n";
+        result << "0" << std::endl;
+        return 5;
+    }
+
+    std::ifstream satellit("D:\\LASER-2\\DATA\\SATELLIT");
+    if (!satellit.is_open()) {
+        std::cout << "Unable to open file satellit !" << std::endl;
+        result << "0" << std::endl;
+        return 5;
+    }
+    jj = 0;
+    while (std::getline(satellit, temp_line)) {
+        sscanf(temp_line.c_str(), utility::FormatSATELLIT_R, &NAMSAT,&NSAT,&ss2,&ss2,&ss2,&ss2,&ss2,&ss2);
+        if (NSAT == nsat) {
+            jj = 1;
+            break;
+        }
+    }
+    satellit.close();
+    if (jj == 0) {
+        std::cout << "\n NO SATELLIT : " << nsat << " IN THE CATALOGUE !\n";
+        result << "0" << std::endl;
+        return 5;
+    }
+
+    utility::mjd_dat(day, month, year, mjd);
+    hour = static_cast<int>(secday / 3600LL);
+    min  = static_cast<int>(secday % 3600LL / 60LL);
+    sek  = static_cast<int>(secday % 3600LL % 60LL);
+    sprintf(header1,"STATION: %+10s   SATELLITE: %-10s %4d-%02d-%02d%4d:%02d:%02d  %5d POINTS",
+            NAMSTAC,NAMSAT,year,month,day,hour,min,sek,points);
+    sprintf(namm,"D:\\LASER-2\\DATA\\%8s.p%2s",namefe,kodst);
+    std::ifstream derivatives_file(namm);
+    if (!derivatives_file.is_open()) {
+        printf("\n  Unable to open file %8s.p%2s !\n", namefe, kodst);
+        result << "0" << std::endl;
+        return 5;
+    }
+
+    QVector<double> X(points), Y(points);
+    for (jj = 0; jj < points; ++jj) {
+        std::getline(derivatives_file, temp_line);
+        sscanf(temp_line.c_str(), utility::FormatPGA_R, &sec,&omc,&tbrb,&czeb);
+        X[jj] = sec;
+        if(kk == 1) Y[jj] = omc;
+        if(kk == 2) Y[jj] = tbrb;
+        if(kk == 3) Y[jj] = czeb;
+    }
+    derivatives_file.close();
+    QVector<double> Xbackup(X);
+
+    time = X.last() - X.first();
+    if (time < 0.) time += 86400.;
+    omcplus = omcminus = Y.first();
+    for (jj = 1; jj < points; ++jj) {
+        if(Y[jj] > omcplus)	 omcplus = Y[jj];
+        if(Y[jj] < omcminus) 	 omcminus = Y[jj];
+        if(X[jj] < X[0])   X[jj] += 86400.;
+    }
+    time = X.last() - X.first();
+    omcplus =  fabs(omcplus);
+    omcminus = fabs(omcminus);
+    omc = (omcminus > omcplus) ? omcminus : omcplus;
+    for (int i=1; i<X.size(); ++i)
+        X[i] -= X[0];
+    X[0] = 0;
+
+    switch(kk) {
+      case(1): {sprintf(header2," ");					break;}
+      case(2): {
+            sprintf(header2," ");
+            sprintf(header2,"TIME BIAS : %6.1lf MS   RANGE BIAS"
+                " : %6.1lf M ",TB,RB);					break;
+    }
+      case(3): {
+            sprintf(header2," ");
+            sprintf(header2,"TIME BIAS :%5.1lf MS  RANGE BIAS"
+                " :%6.1lf M  STEP OF POLY :%3d  RMS :%5.2lf CM",
+                    TB,RB,POLY,RMS*15.);				break;
+    }
+      default: {
+            std::cout << "Incorrect draw option!!!" << std::endl;
+            result << "0" << std::endl;
+            return 5;
+    }
+    }
+
+    Plot* p = new Plot();
+    p->graph()->setData(X, Y);
+    p->isPointDropped.fill(false, X.size());
+    p->graph()->rescaleAxes();
+    p->xAxis->setLabel(QString("TIME [ S ]"));
+    p->yAxis->setLabel(QString("RESIDUALS [ M ]"));
+    p->plotLayout()->insertRow(0);
+    p->plotLayout()->addElement(0, 0, new QCPTextElement(p, QString(header1), QFont("sans", 12, QFont::Bold)));
+    p->plotLayout()->insertRow(0);
+    p->plotLayout()->addElement(0, 0, new QCPTextElement(p, QString(header2), QFont("sans", 12, QFont::Bold)));
+    p->show();
+    int res = qApp->exec();
+
+    if (res == 1 || points == (*(p->graph()->data())).size()) {
+        char buf[16];
+        sprintf(buf, "%d", points);
+        result << buf;
+        result.close();
+        printf("\n plo_fita finished its work. Points remaining - %d !\n",points);
+        delete p;
+        return 1;
+    }
+
+    int newPoints = 0;
+    X.resize((*(p->graph()->data())).size());
+    Y.resize((*(p->graph()->data())).size());
+    for (auto point : *(p->graph()->data())) {
+        X[newPoints] = point.key;
+        Y[newPoints] = point.value;
+        newPoints++;
+    }
+
+    sprintf(name,"D:\\LASER-2\\DATA\\%8s.c%2s",namefe,kodst);
+    std::ifstream obs_copy(name);
+    if (!obs_copy.is_open()) {
+        printf("Unable to open FILE %8s.c%2s !\n", namefe, kodst);
+        result << "0" << std::endl;
+        delete p;
+        return 5;
+    }
+    std::ofstream robcop("D:\\LASER-2\\DATA\\robcop.cop");
+    if (!robcop.is_open()) {
+        std::cout << "Unable to open file robcop.cop !" << std::endl;
+        result << "0" << std::endl;
+        delete p;
+        return 5;
+    }
+    for (n=0, j=0; n < points; n++) {
+        std::getline(obs_copy, temp_line);
+        sscanf(temp_line.c_str(), utility::FormatCGA_R, &sec,&omc,&tbrb,&czeb,&s1,&i);
+        Xbackup[n] = sec;
+        if (!p->isPointDropped[n]) {
+            j++;
+            if (j == 1)	secobs = static_cast<int64_t>(sec);
+            char buf[256];
+            sprintf(buf, utility::FormatCOPY_W, sec,omc,tbrb,czeb,s1,i);
+            robcop << buf << std::endl;
+        }
+    }
+    obs_copy.close();
+    robcop.close();
+
+    sprintf(namm,"D:\\LASER-2\\DATA\\%8s.p%2s",namefe,kodst);
+    derivatives_file.open(namm);
+    if (!derivatives_file.is_open()) {
+        printf("Unable to open FILE %8s.p%2s !\n", namefe, kodst);
+        result << "0" << std::endl;
+        delete p;
+        return 5;
+    }
+    std::ofstream robkop("D:\\LASER-2\\DATA\\robkop.cop");
+    if (!robkop.is_open()) {
+        std::cout << "Unable to open file robkop.cop !" << std::endl;
+        result << "0" << std::endl;
+        delete p;
+        return 5;
+    }
+    for (n=0; n < points; n++) {
+        std::getline(derivatives_file, temp_line);
+        sscanf(temp_line.c_str(), utility::FormatPGA_R, &sec,&omc,&tbrb,&czeb);
+        if (!p->isPointDropped[n]) {
+            char buf[256];
+            sprintf(buf, utility::FormatPGA_W, Xbackup[n],omc,tbrb,czeb);
+            robkop << buf << std::endl;
+        }
+    }
+    obs_copy.close();
+    robkop.close();
+    delete p;
+
+    obs_catalogue.open("D:\\LASER-2\\DATA\\KAT_OBS.DIC");
+    if (!obs_catalogue.is_open()) {
+        std::cout << "Unable to open observations catalogue!" << std::endl;
+        result << "0" << std::endl;
+        return 5;
+    }
+    std::ofstream obs_catalogue_copy("D:\\LASER-2\\DATA\\KAT_OBS.ROB");
+    if (!obs_catalogue_copy.is_open()) {
+        std::cout << "Unable to write observations catalogue copy!" << std::endl;
+        result << "0" << std::endl;
+        return 5;
+    }
+    i = 0;
+    while (std::getline(obs_catalogue, temp_line)) {
+        i++;
+        char buf[256];
+        if (i == nr) {
+            if (sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
+                       &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe, &points,
+                       &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor) != 18) {
+                std::cout << "\nERROR reading observations catalogue in pasint_a: line # " << n << std::endl;
+                obs_catalogue.close();
+                obs_catalogue_copy.close();
+                result << "0" << std::endl;
+                return 5;
+            }
+            points = j;
+            if(secday > secobs)					mjd++;
+            secday = secobs;
+            sprintf(buf, utility::FormatKAT_OBS_W,
+                        ws, ws1, mjd, secday, nsat, nsta, kodst, namefe, points, temp, pres, humid, TB,
+                        RB, RMS, POLY, clock_cor);
+            obs_catalogue_copy << buf << std::endl;
+        } else {
+            obs_catalogue_copy << temp_line << std::endl;
+        }
+    }
+    obs_catalogue.close();
+    obs_catalogue_copy.close();
+
+    remove(name);
+    rename("D:\\LASER-2\\DATA\\robcop.cop",name);
+    rename("D:\\LASER-2\\DATA\\robkop.cop",namm);
+    remove("D:\\LASER-2\\DATA\\KAT_OBS.DIC");
+    rename("D:\\LASER-2\\DATA\\KAT_OBS.ROB",
+           "D:\\LASER-2\\DATA\\KAT_OBS.DIC");
+
+    char buf[16];
+    sprintf(buf, "%d", points);
+    result << buf;
+    result.close();
+    printf("\n plo_fita finished its work. Points remaining - %d !\n",points);
+    return 1;
 }
 
 int plo_nql(int nr)
 {
+    int	j,k,nsta,humid,npoint,day,month,year,day_y,l,jj,vx,vx1,
+        npointt,n,ws,ws1,x,y,POLY,hour,min,sek,jstep,jend,NSTA,xx;
+    int	licz,xx1,NOR_POINT;
+    long int nsat,mjd,secday,NSAT;
 
+    double	temp,pres,RMS,mean_range,time,tim,period,clock_cor,vsum,sum_time,
+        end_time, v_mean,vv_mean,mean_time,sec,omc,omcplus,omcminus,tbrb,
+        czeb,omcskala,timskala,TB,RB,x1,s2,s1,summa,timm[60],rmss[60],xy;
+    char	c,name[33],kodst[3],ss[70];
+    char	namefe[9],namm[33],NAMSTAC[12],
+        NAMSAT[12],NAMSYM[3],nam[3];
+    char	header1[81];
+    char	header2[81];
+
+    std::ifstream obs_catalogue("D:\\LASER-2\\DATA\\KAT_OBS.DIC");
+    if (!obs_catalogue.is_open()) {
+        std::cout << "Unable to open observations catalogue!" << std::endl;
+        return 5;
+    }
+    j = -1;
+    n = 0;
+    std::string temp_line;
+    while (std::getline(obs_catalogue, temp_line)) {
+        sscanf(temp_line.c_str() , utility::FormatKAT_OBS_R,
+                                &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe,
+                                &npoint, &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor);
+        n++;
+        if (n == nr) {
+            j = 1;
+            break;
+        }
+    }
+    obs_catalogue.close();
+    if (j == -1) {
+        std::cout << "No such observation in the catalogue!" << std::endl;
+        return 5;
+    }
+    if (ws1 == -1) {
+        std::cout << "Please, do this on copy." << std::endl;
+        return 5;
+    }
+    if (npoint > 5000) {
+        std::cout << "Too many measurements (MAX = 5000)" << std::endl;
+        return 5;
+    }
+
+    std::ifstream satellit("D:\\LASER-2\\DATA\\SATELLIT");
+    if (!satellit.is_open()) {
+        std::cout << "Unable to open file satellit !" << std::endl;
+        return 5;
+    }
+    j = -1;
+    while(std::getline(satellit, temp_line)) {
+        sscanf(temp_line.c_str(), utility::FormatSATELLIT_R,&NAMSAT,&NSAT,&xx1,&xx1,&xx1,&xx1,&NOR_POINT,&day_y);
+        if (NSAT==nsat) {
+            j=1;
+            break;
+        }
+    }
+    satellit.close();
+    if (j == -1) {
+        std::cout << "No satellite in the catalogue: " << nsat << std::endl;
+        return 5;
+    }
+    period = static_cast<double>(day_y);
+
+    std::ifstream station("D:\\LASER-2\\DATA\\STATION");
+    if (!station.is_open()) {
+        std::cout << "Unable to open file station !" << std::endl;
+        return 5;
+    }
+    j = -1;
+    std::getline(station, temp_line);
+    sscanf(temp_line.c_str(), "%s%d%d%d%d", &NAMSTAC,&NSTA,&xx1,&xx1,&xx1);
+    station.close();
+    if (nsta == NSTA) j = 1;
+    if (j == -1) {
+        std::cout << "\n NO STATION  : " << nsta << " IN THE STATION CATALOGUE !\n";
+        return 5;
+    }
+
+    utility::mjd_dat(day, month, year, mjd);
+    hour = static_cast<int>(secday / 3600LL);
+    min  = static_cast<int>(secday % 3600LL / 60LL);
+    sek  = static_cast<int>(secday % 3600LL % 60LL);
+    sprintf(header1,"ST:%-4s SAT: %-5s %4d-%02d-%02d%4d:%02d:%02d %4d POINTS",
+        NAMSTAC,NAMSAT,year,month,day,hour,min,sek,npoint);
+    sprintf(header2,"TBIAS:%6.1lfMS RBIAS:%6.1lfM STEP :%2d RMS:%5.2lf",
+        TB,RB,POLY,RMS*15.);
+
+    sprintf(namm,"D:\\LASER-2\\DATA\\%8s.p%2s",namefe,kodst);
+    std::ifstream derivatives_file(namm);
+    if (!derivatives_file.is_open()) {
+        printf("\n  Unable to open file %8s.p%2s !\n", namefe, kodst);
+        return 5;
+    }
+    QVector<double> X(npoint), Y(npoint);
+    for (jj = 0; jj<npoint; ++jj) {
+        std::getline(derivatives_file, temp_line);
+        sscanf(temp_line.c_str(), utility::FormatPGA_R, &sec,&omc,&tbrb,&czeb);
+        X[jj] = sec;
+        Y[jj] = czeb;
+    }
+    derivatives_file.close();
+
+    time = X.last() - X.first();
+    if (time < 0.) time += 86400.;
+    omcplus = omcminus = Y.first();
+    for (jj = 1; jj < npoint; ++jj) {
+        if(Y[jj] > omcplus)	 omcplus = Y[jj];
+        if(Y[jj] < omcminus) 	 omcminus = Y[jj];
+        if(X[jj] < X[0])   X[jj] += 86400.;
+    }
+    time = X.last() - X.first();
+    omcplus =  fabs(omcplus);
+    omcminus = fabs(omcminus);
+    omc = (omcminus > omcplus) ? omcminus : omcplus;
+
+    QVector<double> tab_time(npoint), v(npoint);
+    l = 0;
+    vx1 = static_cast<int>(X.first()/period);
+    tab_time[l] = sum_time = X.first();
+    vsum = v[l] = Y.first();
+    end_time=static_cast<double>(vx1+1)*period;
+    npointt = npoint+1;
+    licz=0;
+    summa=0.;
+
+    for (j = 1; j<npointt; ++j) {
+        if (j == npoint)
+            vx = -1;
+        else
+            vx = static_cast<int>(X[j]/period);
+
+        if (X[j] <= end_time && vx==vx1) {
+            l++;
+            tab_time[l] = X[j];
+            sum_time += X[j];
+            vsum += Y[j];
+            v[l] = Y[j];
+        } else {
+            if (l==0) {
+                v_mean = v[l];
+                mean_time = tab_time[0];
+                mean_range = v[0];
+            } else {
+                mean_time = sum_time/static_cast<double>(l+1);
+                vv_mean = vsum/static_cast<double>(l+1);
+                for (jj=0, vsum=0.; jj<=l; ++jj)
+                    vsum += (v[jj]-vv_mean)*(v[jj]-vv_mean);
+                v_mean = sqrt(vsum/static_cast<double>(l));
+                tim = fabs(mean_time-tab_time[0]);
+
+                for (k=1, jj=0; k<=l; ++k) {
+                    xx = fabs(mean_time-tab_time[k]);
+                    if (xx < tim) {
+                        jj = k;
+                        tim = xx;
+                    }
+                }
+                mean_time = tab_time[jj];
+                mean_range = vv_mean;
+            }
+
+            licz++;
+            summa += mean_range;
+            timm[licz-1] = mean_time;
+            rmss[licz-1] = mean_range;
+            l = 0;
+            vv_mean = 0.;
+            vx1 = static_cast<int>(X[j]/period);
+            tab_time[l] = sum_time = X[j];
+            vsum = v[l] = Y[j];
+            end_time=static_cast<double>(vx+1)*period;
+        }
+    }
+
+    QVector<double> Xl, Yl, XL, YL;
+    if (licz > 1) {
+        summa /= static_cast<double>(licz);
+        for (j=0, xy=0.; j<licz; ++j)
+            xy += (summa-rmss[j])*(summa-rmss[j]);
+        xy = 2.5*sqrt(xy/static_cast<double>(licz-1));
+
+        for (j=0; j<licz; ++j)
+            if (fabs(rmss[j]-summa) < xy) {         // < 2.5 sigma
+                Xl.push_back(timm[j]-X.first());
+                Yl.push_back(rmss[j]);
+            } else {                                // > 2.5 sigma
+                XL.push_back(timm[j]-X.first());
+                YL.push_back(rmss[j]);
+            }
+    }
+
+
+    for (int i=1; i<X.size(); ++i)
+        X[i] -= X[0];
+    X[0] = 0;
+    QCustomPlot* p = new QCustomPlot();
+    p->addGraph();
+    p->graph()->setData(X,Y);
+    p->graph()->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, Qt::blue, PIXEL_SIZE));
+    p->graph()->setLineStyle(QCPGraph::lsNone);
+    p->graph()->rescaleAxes();
+    p->addGraph();
+    p->graph()->setData(Xl,Yl);
+    p->graph()->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, Qt::green, PIXEL_SIZE*2));
+    p->graph()->setLineStyle(QCPGraph::lsNone);
+    p->graph()->rescaleAxes();
+    p->addGraph();
+    p->graph()->setData(XL,YL);
+    p->graph()->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, Qt::green, PIXEL_SIZE*3));
+    p->graph()->setLineStyle(QCPGraph::lsNone);
+    p->graph()->rescaleAxes();
+    p->xAxis->setLabel(QString("TIME [ S ]"));
+    p->yAxis->setLabel(QString("RESIDUALS [ M ]"));
+    p->plotLayout()->insertRow(0);
+    p->plotLayout()->addElement(0, 0, new QCPTextElement(p, QString(header1), QFont("sans", 11, QFont::Bold)));
+    p->plotLayout()->insertRow(0);
+    p->plotLayout()->addElement(0, 0, new QCPTextElement(p, QString(header2), QFont("sans", 11, QFont::Bold)));
+    p->resize(700,400);
+    p->show();
+    qApp->exec();
+
+    std::cout << std::endl << " END PROC. plo_nql." << std::endl;
+    delete p;
+    return 1;
 }
 
 int pasint_a(int nr)
@@ -1328,7 +1868,7 @@ e303:	continue;
     sprintf(namm, "D:\\LASER-2\\DATA\\%8s.p%2s", namefe, kodst);
     std::ofstream derivatives_file(namm);
     if (!derivatives_file.is_open()) {
-        printf("\n  Unable to open file %8s.e%2s !\n", namefe, kodst);
+        printf("\n  Unable to open file %8s.p%2s !\n", namefe, kodst);
         result << "0" << std::endl;
         return 5;
     }
@@ -1787,6 +2327,9 @@ int pol_epaa(int nr)
     obs_catalogue.close();
     obs_catalogue_copy.close();
 
+    remove(name);
+    rename("D:\\LASER-2\\DATA\\copia.wie",name);
+
     remove("D:\\LASER-2\\DATA\\KAT_OBS.DIC");
     rename("D:\\LASER-2\\DATA\\KAT_OBS.ROB",
         "D:\\LASER-2\\DATA\\KAT_OBS.DIC");
@@ -1919,7 +2462,7 @@ L_8:
         return 1;
     }
     if( jj==2 ) {
-        printf(" Define the range of good points +/- cm :  \n");
+        printf(" Define the range for good points +/- cm :  \n");
         fflush(stdin);
         scanf("%lf",&rms);
         rms*=0.01;
@@ -2110,7 +2653,7 @@ int del_npt(int nr)
     satellit.close();
 
     if (j == -1) {
-        std::cout << "No satellite in the catalogue!" << std::endl;
+        std::cout << "No satellite in the catalogue: " << nsat << std::endl;
         return 5;
     }
 
@@ -2359,7 +2902,7 @@ int cat_kboa(int64_t numpass)
     }
     std::string temp_line;
     std::getline(interimData, temp_line);
-    sscanf(temp_line.c_str(), utility::FormatEPA_AUTO_R, &nr, &numpass, &cal_before, &cal_after);
+    sscanf(temp_line.c_str(), "%4d%6ld%4d%4d", &nr, &numpass, &cal_before, &cal_after);
     interimData.close();
 
     std::ifstream obs_catalogue("D:\\LASER-2\\DATA\\KAT_OBS.DIC");
@@ -2382,7 +2925,7 @@ int cat_kboa(int64_t numpass)
     obs_catalogue.close();
     strcpy(nff,namefe);
     if (sky == -1) {
-        std::cout << "No such observation in the catalogue KOB!" << std::endl;
+        std::cout << "No such observation in the observation catalogue!" << std::endl;
         return 5;
     }
     if (ws1 == -1) {
@@ -2491,7 +3034,7 @@ int cat_kboa(int64_t numpass)
     }
     dist_target1 = target;
 
-    if(cal_before==0) {
+    if(cal_after==0) {
         tim_end_cal=0L;
         dist_target2=0.;
         flash2=good_flash2=0;
@@ -2549,12 +3092,12 @@ int cat_kboa(int64_t numpass)
     sprintf(buf,"%8.2lf\n",min_o_c); obs_log << buf;
     sprintf(buf,"%4d\n",step_poly); obs_log << buf;
     sprintf(buf,"%8.2lf\n",dist_target1); obs_log << buf;
-    sprintf(buf,"%6ld\n",tim_st_cal); obs_log << buf;
+    sprintf(buf,"%6lld\n",tim_st_cal); obs_log << buf;
     sprintf(buf,"%6d\n",good_flash1); obs_log << buf;
     sprintf(buf,"%6d\n",flash1); obs_log << buf;
     sprintf(buf,"%6d\n",filter1); obs_log << buf;
     sprintf(buf,"%8.2lf\n",dist_target2); obs_log << buf;
-    sprintf(buf,"%6ld\n",tim_end_cal); obs_log << buf;
+    sprintf(buf,"%6lld\n",tim_end_cal); obs_log << buf;
     sprintf(buf,"%6d\n",good_flash2); obs_log << buf;
     sprintf(buf,"%6d\n",flash2); obs_log << buf;
     sprintf(buf,"%6d\n",filter2); obs_log << buf;
@@ -2604,6 +3147,7 @@ int npt_kbod(int64_t nr)
         sscanf(temp_line.c_str(), utility::FormatKAT_KBO_R,
                &c,&numpass,&nsat,&nsta,kodst,&mjd,&secday,&temp,&pres,&humid,
                &npoint,&rms,&weather,&cal_before,&cal_after,namefill,&clock_cor);
+
         if (nr == numpass) {
             j=1;
             break;
@@ -2787,7 +3331,7 @@ void nql_kbo(int64_t nr)
     int hour,minut,rr,cospar,sic,transponder,i_flag,rang_typ,dig,sign,ii,ik;
     char st_name[5],*str_num,*sss,str2[22],sat_nam[11];
     int  data_qv,m_relis,day_s,month_s,year_s,day_f,month_f,year_f,N_pulse;
-    long int norad,mjd_f,mjd_s;
+    int64_t norad,mjd_f,mjd_s;
     double tim1,tim2,hour1,hour2,sec1,sec2,minut1,minut2;
     double tr_wave,p_wave,fire_rate,pulse_width,target_c1,target_c2;
     float beam,a_w,qv,d_c,o_p,s_f1,tr_s,s_f2,e_delay,p_energy,volt,k_urt,s_kew;
@@ -2796,7 +3340,7 @@ void nql_kbo(int64_t nr)
     double time2,time3,cal_dist,skew1,skew2,kurt1,kurt2,cal_peak1,cal_peak2,rmsk_c1,rmsk_c2,temp_c,press_c,humid_c,sk_c1,sk_c2;
     float las_en, feu_volt;
     int cal_type,cal_n1,cal_n2,cal_shift,np_window,filter1,filter2,flag;
-    long int mjd_c1,mjd_c2,tim_st_cal1,tim_st_cal2;
+    int64_t mjd_c1,mjd_c2,tim_st_cal1,tim_st_cal2;
     int cal_type_ind,cal_shift_ind,det_canal,flash1,good_flash1,flash2,good_flash2,namberpass,coef_c;
     double tab_time[5000],v[5000],rang[5000];
     std::string temp_line;
@@ -2915,7 +3459,7 @@ void nql_kbo(int64_t nr)
         if(cal_after!=0) flag_cal++;
 
         if(j==-1) {
-            printf("\nNo such observation in the catalogue:%7ld",nr);
+            printf("\nNo such observation in the catalogue:%7lld",nr);
             tmp1 << "0" << std::endl;
             return; // exit(1)
         }
@@ -2990,7 +3534,7 @@ void nql_kbo(int64_t nr)
 
         period=static_cast<double>(day_y);
         edc_npt << "99999" << std::endl;
-        sprintf(buf,"H3 %10s % 8ld %04d %08ld %1d %1d",sat_nam,sat_id,sic,norad,transponder,i_flag);
+        sprintf(buf,"H3 %10s % 8lld %04d %08lld %1d %1d",sat_nam,sat_id,sic,norad,transponder,i_flag);
         npt_crd << buf << std::endl;
         frd_crd << buf << std::endl;
 
@@ -3018,7 +3562,7 @@ void nql_kbo(int64_t nr)
         }
 
         TIM_SCALE=7; SYS_CALIB=0;CAL_INDIC=2; SYS_FLAG=2;
-        sprintf(ss,"%.7ld%02d%03d%4d%02d%02d%4.0lf%08.0lf%06.0lf"
+        sprintf(ss,"%.7lld%02d%03d%4d%02d%02d%4.0lf%08.0lf%06.0lf"
             "%04.0lf%1d%1d%1d%1d%1d%04.0lf0",
             nsat,year_cent,day_y,nsta,SYS_NUM,OCU_SEQ,
             LAS_WAV*1.e4,corect*1000.,shift*1000.,rms_cal*1000.,
@@ -3100,7 +3644,7 @@ void nql_kbo(int64_t nr)
                  trop_corr,cmas_corr,ampl_corr,sys_del,hz,rang_typ,data_qv);
         frd_crd << buf << std::endl;
 
-        sprintf(buf,"mjd=%ld  start=%ld   finish=%ld",mjd,mjd_s,mjd_f); tmp2 << buf << std::endl;
+        sprintf(buf,"mjd=%lld  start=%lld   finish=%lld",mjd,mjd_s,mjd_f); tmp2 << buf << std::endl;
         sprintf(buf,"start day is %d  %d  %d",year_s,month_s,day_s);    tmp2 << buf << std::endl;
         sprintf(buf,"start in %.lf %.lf %.lf",hour1,minut1,sec1);       tmp2 << buf << std::endl;
         sprintf(buf,"finish day is %d  %d  %d",year_f,month_f,day_f);   tmp2 << buf << std::endl;
@@ -3171,7 +3715,7 @@ void nql_kbo(int64_t nr)
                 v[l]=o_c;
                 rang[l]=range;
             } else {
-                if(l>5000) printf("\n Warning!!! \n Program work corectly up to 3000 points per 1 normal point\n now Q=%d\n",l);
+                if(l>5000) printf("\n Warning!!! \n Program works corectly up to 3000 points per 1 normal point\n now Q=%d\n",l);
                 if(l==1) {
                     v_mean=rms;
                     mean_time=tab_time[1];
@@ -3253,7 +3797,7 @@ void nql_kbo(int64_t nr)
             k_obs.seekg(0, std::ios_base::beg);
             edc_npt << "88888" << std::endl;
             jj=0;
-            sprintf(ss,"%7ld%02d%03d%4d%02d%02d%4.0lf%08.0lf"
+            sprintf(ss,"%7lld%02d%03d%4d%02d%02d%4.0lf%08.0lf"
                 "%06.0lf%04.0lf%1d%1d%1d%1d%1d%04.0lf0",
             nsat,year_cent,day_y,nsta,SYS_NUM,OCU_SEQ,
             LAS_WAV*1.e4,corect,shift,rms_cal,jj,TIM_SCALE,
@@ -3345,9 +3889,29 @@ void nql_kbo(int64_t nr)
     frd_crd << buf << std::endl;
 }
 
-int main()
+int main(int argc, char *argv[])
 {
-//    QCoreApplication a(argc, argv);
+    QApplication a(argc, argv);
+//    Plot* p = new Plot();
+//    QVector<double> x(1000),y(1000);
+//    QRandomGenerator rd;
+//    for (int i=0; i<1000; ++i) {
+//        x[i] = rd.generateDouble();
+//        y[i] = rd.generateDouble();
+//    }
+//    p->graph()->setData(x,y);
+//    p->isPointDropped.fill(false, x.size());
+//    p->graph()->rescaleAxes();
+//    p->xAxis->setLabel(QString("TIME [ S ]"));
+//    p->yAxis->setLabel(QString("RESIDUALS [ M ]"));
+//    p->plotLayout()->insertRow(0);
+//    p->plotLayout()->addElement(0, 0, new QCPTextElement(p, QString("header1"), QFont("sans", 12, QFont::Bold)));
+//    p->show();
+//    return a.exec();
+
+    AOPConsoleWindow w;
+    w.show();
+    return a.exec();
 
     alarm();
     if (stt_epaa(0) == 5) {
@@ -3505,7 +4069,7 @@ int main()
         if (kbhit()!=0) {
             char c = getch();
             if (c == 0x00) c=getch();
-            if (c == 0x0d) return 1;
+            if (c == 0x1b) return 1;
         }
         if (npoint == 0) {
             std::cout << "The number of measurments in RESULT.DAT is 0" << std::endl;
@@ -3576,10 +4140,10 @@ int main()
         } else {
             time_t t = time(nullptr);
             struct tm tm = *localtime(&t);
-            int64_t mjd = utility::day_year(tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900);
-            int secday = 3600*tm.tm_hour+60*tm.tm_min+tm.tm_sec;
+            int64_t mjd = utility::dat_mjd(tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900);
+            int64_t secday = 3600*tm.tm_hour+60*tm.tm_min+tm.tm_sec;
             char buf[256];
-            sprintf(buf, "e 0 %8ld %8ld %8ld %8ld", numpass, nr_sat, mjd, secday);
+            sprintf(buf, "e 0 %8lld %8lld %8lld %8lld", numpass, nr_sat, mjd, secday);
             print_catalogue << buf << std::endl;
         }
     }
@@ -3595,5 +4159,6 @@ int main()
 
     std::cout << "END of the AOP!" << std::endl;
     fflush(stdin);
-    return 0;
+
+    return a.exec();
 }
