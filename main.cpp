@@ -1250,8 +1250,16 @@ int plo_fita(int nr)
     hour = static_cast<int>(secday / 3600LL);
     min  = static_cast<int>(secday % 3600LL / 60LL);
     sek  = static_cast<int>(secday % 3600LL % 60LL);
+
+
+
     sprintf(header1,"STATION: %+10s   SATELLITE: %-10s %4d-%02d-%02d%4d:%02d:%02d  %5d POINTS",
             NAMSTAC,NAMSAT,year,month,day,hour,min,sek,points);
+
+    // .....
+    if (namefe[3] == '\0') namefe[3] = '0';
+    // .....
+
     sprintf(namm,"D:\\LASER-2\\DATA\\%8s.p%2s",namefe,kodst);
     std::ifstream derivatives_file(namm);
     if (!derivatives_file.is_open()) {
@@ -1865,6 +1873,9 @@ e504:	s1 = x1;
 e303:	continue;
     }
 
+    tx = -0.3643/1000.;
+    s1 = 32.7503;
+
     sprintf(namm, "D:\\LASER-2\\DATA\\%8s.p%2s", namefe, kodst);
     std::ofstream derivatives_file(namm);
     if (!derivatives_file.is_open()) {
@@ -2017,6 +2028,9 @@ int pol_epaa(int nr)
             break;
         }
     }
+
+    printf("TB/RB - %lf/%lf \n", TB, RB);
+
     obs_catalogue.close();
     if (jj == 0) {
         std::cout << "No such observation in the catalogue!" << std::endl;
@@ -2245,7 +2259,7 @@ int pol_epaa(int nr)
 
     printf("\n VARIAN.  ");
     for(j=k;j<=m;j++)
-        printf("%8.1Lf",d1[j]*1.e4);
+        printf("%8.1lf",d1[j]*1.e4);
 
     printf("\n ST.DEV.  ");
     for(j=k;j<=m;j++)
@@ -2407,6 +2421,8 @@ int graf_ep0(int nr)
     }
     derivatives_file.close();
 
+    printf("rms = %lf, left/total - %d/%d \n", rms, np, npoint);
+
     if (np < npoint) goto L_9;
     if(rms > 0.6) {	mean_val=47.5;	step=20.;	i_step=5;	}
     else {	mean_val=19.;	step=50.;	i_step=2;	}
@@ -2507,6 +2523,9 @@ L_9:
             robcze << buf << std::endl;
         }
     }
+
+    printf("rms = %lf, left/total - %d/%d \n", rms, jj, npoint);
+
     derivatives_file.close();
     obs_copy.close();
     robcop.close();

@@ -13,11 +13,14 @@
 #include <QMessageBox>
 #include <QInputDialog>
 #include <QNetworkReply>
+#include <QSlider>
 
 #include "datamodels.h"
 #include "plot.h"
 #include "utility.h"
 #include "config.h"
+
+class CustomSlider;
 
 class AOPConsoleWindow : public QMainWindow
 {
@@ -83,7 +86,8 @@ private:
     QCustomPlot *calBefore_plot, *calAfter_plot, *residDist_plot;
     Plot *omc_plot;
     QCustomPlot *nql_plot;
-    QPushButton *esc_pBtn, *undo_pBtn, *up_pBtn, *down_pBtn, *filtBtn, *recalcTRB_pBtn;
+    QPushButton *esc_pBtn, *undo_pBtn, *up_pBtn, *down_pBtn, *filtBtn, *recalcTRB_pBtn, *applyTRB_pBtn, *saveexit_pBtn;
+    CustomSlider *bandLengthVal, *bandWidthVal, *snrVal, *sigmaVal;
 
     // settings
     SettingsDialog *sd;
@@ -125,7 +129,7 @@ public slots:
     // misc
     void obsHighlighted(int,int);
     void onOmc_plotFinish(bool);
-    void onOmc_plotFiltering(int);
+    void onOMC_Filtering(int);
 
     // select obs and create copy - step 1
     void setup1();
@@ -149,7 +153,7 @@ public slots:
     void setup5();
     void showResidHist(const double& mean_val, const int& maxplus, const int& maxmin, const int& scale, const QVector<double>& hist, const double& skew, const double& kurt);
 
-    // write CRD files, send them to ILRS
+    // write CRD files, save & send them via FTP
     void setup6();
 };
 
@@ -186,6 +190,21 @@ public:
 
 private:
     QTreeWidgetItem* m_pItem;
+};
+
+class CustomSlider : public QWidget
+{
+public:
+    explicit CustomSlider(Qt::Orientation o, double unit, QString name, QWidget* parent=nullptr);
+    virtual ~CustomSlider();
+
+    void setRange(int min, int max);
+    double value();
+    QSlider *slider;
+private:
+    double _unit;
+    QLabel *minVal, *maxVal, *curVal, *title;
+    QGridLayout *grid;
 };
 
 #endif // AOPCONSOLEWINDOW_H

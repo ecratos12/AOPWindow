@@ -25,7 +25,9 @@ SOURCES += \
         plot.cpp \
         qcustomplot/qcustomplot.cpp \
         utility.cpp \
-    config.cpp
+    config.cpp \
+    centralwidget.cpp \
+    engine.cpp
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -39,6 +41,8 @@ HEADERS += \
     plot.h \
     qcustomplot/qcustomplot.h \
     utility.h \
-    config.h
+    config.h \
+    centralwidget.h \
+    engine.h
 
 DISTFILES +=

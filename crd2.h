@@ -65,4 +65,20 @@ public:
                   int range_type, int data_qlty) override;
 };
 
+class FRD_FILE : public CRD_FILE
+{
+public:
+    FRD_FILE()=delete;
+    FRD_FILE(std::string fname);
+    FRD_FILE(char st_name[5], char sat_nam[11], int yyyy, int mm, int dd, double hh, int version=0);
+    ~FRD_FILE()=default;
+
+    std::string getAsString() {return content;}
+
+    void write_H4(int year1, int month1, int day1, int hour1, int min1, int sec1,
+                  int year2, int month2, int day2, int hour2, int min2, int sec2,
+                  int release, int trop_cor, int com_cor, int ampl_cor, int sys_del_station, int sys_del_spacecr,
+                  int range_type, int data_qlty) override;
+};
+
 #endif // CRD2_H

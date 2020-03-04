@@ -14,18 +14,11 @@ CRD_FILE::CRD_FILE(char *st_name, char *sat_nam, int yyyy, int mm, int dd, doubl
     file.open(fname);
 }
 
-NPT_FILE::NPT_FILE(std::string fname) : CRD_FILE(fname)
-{
-    file.open(fname);
-}
+NPT_FILE::NPT_FILE(std::string fname) : CRD_FILE(fname) {}
+NPT_FILE::NPT_FILE(char *st_name, char *sat_nam, int yyyy, int mm, int dd, double hh, int version) : CRD_FILE(st_name,sat_nam,yyyy,mm,dd,hh,version) {}
 
-NPT_FILE::NPT_FILE(char *st_name, char *sat_nam, int yyyy, int mm, int dd, double hh, int version) : CRD_FILE(st_name,sat_nam,yyyy,mm,dd,hh,version)
-{
-    char fname[256];
-    sprintf(fname,"D:\\LASER-2\\DATA\\SEND\\%4s_%1.10s_crd_%04d%02d%02d_%02.lf_%02d.npt",
-            st_name, sat_nam, yyyy, mm, dd, hh, version);
-    file.open(fname);
-}
+FRD_FILE::FRD_FILE(std::string fname) : CRD_FILE(fname) {}
+FRD_FILE::FRD_FILE(char *st_name, char *sat_nam, int yyyy, int mm, int dd, double hh, int version) : CRD_FILE(st_name,sat_nam,yyyy,mm,dd,hh,version) {}
 
 /*!
  * \brief Write to CRD file Format header H1
@@ -52,7 +45,7 @@ void CRD_FILE::write_H1(int year, int month, int day, int hour)
  */
 void CRD_FILE::write_H2(char *st_name, int st_num, int st_sys, int st_occ, int st_tim)
 {
-    sprintf(buf, "H2 %10s %4d %2d %2d %2d ILRS\n",
+    sprintf(buf, "H2 %10s %4d %2d %2d %2d EUROLAS\n",
             st_name, st_num, st_sys, st_occ, st_tim);
     file << buf;
     content.append(buf,strlen(buf));
@@ -88,7 +81,7 @@ void CRD_FILE::write_H3(char *sat_nam, int64_t sat_id, int sic, int64_t norad, i
  * \param hour1 Starting Hour (UTC)
  * \param min1 Starting Minute (UTC)
  * \param sec1 Starting Second (UTC)
- * \param year2 Ending Year (Set the ending date and time fields to “na” if not available.)
+ * \param year2 Ending Year
  * \param month2 Ending Month
  * \param day2 Ending Day
  * \param hour2 Ending Hour (UTC)
@@ -106,6 +99,38 @@ void CRD_FILE::write_H3(char *sat_nam, int64_t sat_id, int sic, int64_t norad, i
 void NPT_FILE::write_H4(int year1, int month1, int day1, int hour1, int min1, int sec1, int year2, int month2, int day2, int hour2, int min2, int sec2, int release, int trop_cor, int com_cor, int ampl_cor, int sys_del_station, int sys_del_spacecr, int range_type, int data_qlty)
 {
     sprintf(buf, "H4 1 %4d %2d %2d %2d %2d %2d %4d %2d %2d %2d %2d %2d %2d %1d %1d %1d %1d %1d %1d %1d\n",
+            year1,month1,day1,hour1,min1,sec1,year2,month2,day2,hour2,min2,sec2,
+            release,trop_cor,com_cor,ampl_cor,sys_del_station,sys_del_spacecr,range_type,data_qlty);
+    file << buf;
+    content.append(buf,strlen(buf));
+}
+
+/*!
+ * \brief Write to FRD file Session (Pass/Pass segment) Header H4
+ * \param year1 Starting Year
+ * \param month1 Starting Month
+ * \param day1 Starting Day
+ * \param hour1 Starting Hour (UTC)
+ * \param min1 Starting Minute (UTC)
+ * \param sec1 Starting Second (UTC)
+ * \param year2 Ending Year
+ * \param month2 Ending Month
+ * \param day2 Ending Day
+ * \param hour2 Ending Hour (UTC)
+ * \param min2 Ending Minute (UTC)
+ * \param sec2 Ending Second (UTC)
+ * \param release A flag to indicate the data release
+ * \param trop_cor Tropospheric refraction correction applied indicator
+ * \param com_cor Center of mass correction applied indicator
+ * \param ampl_cor Receive amplitude correction applied indicator
+ * \param sys_del_station Station system delay applied indicator
+ * \param sys_del_spacecr Spacecraft system delay applied (transponders) indicator
+ * \param range_type Range type indicator
+ * \param data_qlty Data quality alert indicator
+ */
+void FRD_FILE::write_H4(int year1, int month1, int day1, int hour1, int min1, int sec1, int year2, int month2, int day2, int hour2, int min2, int sec2, int release, int trop_cor, int com_cor, int ampl_cor, int sys_del_station, int sys_del_spacecr, int range_type, int data_qlty)
+{
+    sprintf(buf, "H4 0 %4d %2d %2d %2d %2d %2d %4d %2d %2d %2d %2d %2d %2d %1d %1d %1d %1d %1d %1d %1d\n",
             year1,month1,day1,hour1,min1,sec1,year2,month2,day2,hour2,min2,sec2,
             release,trop_cor,com_cor,ampl_cor,sys_del_station,sys_del_spacecr,range_type,data_qlty);
     file << buf;
@@ -238,8 +263,12 @@ void CRD_FILE::write_C7() {}
  */
 void CRD_FILE::write_10(double sec, double range_insec, char *sys_conf, int event_type, int filt_flag, int det_ch_type, int stop_num, int RxAmpl, int TxAmpl)
 {
-    sprintf(buf, "10 %18.12lf %18.12lf %4s %1d %1d %1d %1d %5d %5d\n",
-            sec,range_insec,sys_conf,event_type,filt_flag,det_ch_type,stop_num,RxAmpl,TxAmpl);
+    if (TxAmpl == -1)
+        sprintf(buf, "10 %18.12lf %18.12lf %4s %1d %1d %1d %1d %5d na\n",
+                sec,range_insec,sys_conf,event_type,filt_flag,det_ch_type,stop_num,RxAmpl);
+    else
+        sprintf(buf, "10 %18.12lf %18.12lf %4s %1d %1d %1d %1d %5d %5d\n",
+                sec,range_insec,sys_conf,event_type,filt_flag,det_ch_type,stop_num,RxAmpl,TxAmpl);
     file << buf;
     content.append(buf,strlen(buf));
 }
@@ -262,8 +291,12 @@ void CRD_FILE::write_10(double sec, double range_insec, char *sys_conf, int even
  */
 void CRD_FILE::write_11(double sec, double range_insec, char *sys_conf, int event_type, double np_window, int rangenum_per_np, double rms_ps, double skew, double kurt, double peak, double ret_rate, int det_ch, double SNR)
 {
-    sprintf(buf, "11 %18.12lf %18.12lf %4s %1d %6.1lf %6d %9.1lf %7.3lf %7.3lf %9.1lf %5.1lf %1d %5.1lf\n",
-            sec,range_insec,sys_conf,event_type,np_window,rangenum_per_np,rms_ps,skew,kurt,peak,ret_rate,det_ch,SNR);
+    if (SNR < 0)
+        sprintf(buf, "11 %18.12lf %18.12lf %4s %1d %6.1lf %6d %9.1lf %7.3lf %7.3lf %9.1lf %5.1lf %1d na\n",
+                sec,range_insec,sys_conf,event_type,np_window,rangenum_per_np,rms_ps,skew,kurt,peak,ret_rate,det_ch);
+    else
+        sprintf(buf, "11 %18.12lf %18.12lf %4s %1d %6.1lf %6d %9.1lf %7.3lf %7.3lf %9.1lf %5.1lf %1d %5.1lf\n",
+                sec,range_insec,sys_conf,event_type,np_window,rangenum_per_np,rms_ps,skew,kurt,peak,ret_rate,det_ch,SNR);
     file << buf;
     content.append(buf,strlen(buf));
 }

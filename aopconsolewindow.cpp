@@ -29,6 +29,44 @@ CustomTitle::CustomTitle(const QString& text, QWidget *parent) : QLabel(text, pa
 }
 CustomTitle::~CustomTitle() {}
 
+CustomSlider::CustomSlider(Qt::Orientation o, double unit, QString name, QWidget *parent) : QWidget(parent),
+    slider(new QSlider(o, this)), _unit(unit),
+    minVal(new QLabel(this)), maxVal(new QLabel(this)), curVal(new QLabel(this)),
+    title(new QLabel(this))
+{
+    title->setText(name);
+    title->setFont(QFont("Courier New", 10, QFont::Bold));
+    connect(slider, &QSlider::valueChanged, this, [&](int value){
+        curVal->setText(QString::number(value*_unit, 'f', 2));
+    });
+
+    grid = new QGridLayout(this);
+    grid->addWidget(title, 0, 0, 1, 5);
+    grid->addWidget(minVal, 1, 0);
+    grid->addWidget(slider, 1, 1);
+    grid->addWidget(maxVal, 1, 2);
+    QFrame* line = new QFrame();
+    line->setFrameShape(QFrame::VLine);
+    line->setFrameShadow(QFrame::Sunken);
+    grid->addWidget(line, 1, 3);
+    grid->addWidget(curVal, 1, 4);
+    setLayout(grid);
+}
+
+CustomSlider::~CustomSlider() {}
+
+void CustomSlider::setRange(int min, int max)
+{
+    slider->setRange(min,max);
+    minVal->setText("min: "+QString::number(min*_unit, 'f', 2));
+    maxVal->setText("max: "+QString::number(max*_unit, 'f', 2));
+}
+
+double CustomSlider::value()
+{
+    return slider->value() * _unit;
+}
+
 
 AOPConsoleWindow::AOPConsoleWindow(QWidget *parent) : QMainWindow(parent),
     catObsTableView(nullptr),
@@ -92,7 +130,8 @@ AOPConsoleWindow::~AOPConsoleWindow() {}
 void AOPConsoleWindow::setup1()
 {
     selObsBtn = new QPushButton(this);
-    selObsBtn->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    selObsBtn->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    selObsBtn->setFont(QFont("Courier New", 12, QFont::Bold));
     switchObsViewBtn = new QPushButton("Table/Tree view", this);
     checkOrig = new QCheckBox(this);
     checkNew = new QCheckBox(this);
@@ -140,6 +179,7 @@ void AOPConsoleWindow::setup1()
     }
 
     grid1->addWidget(complete1Btn, 1, 6, 6, 1);
+
     central1_ = new QWidget(this);
     central1_->setLayout(grid1);
     setCentralWidget(central1_);
@@ -260,6 +300,7 @@ void AOPConsoleWindow::setup2()
     grid2->addWidget(catCalTableView, 2, 1, 1, 4);
     grid2->addWidget(complete2Btn, 1, 5, 3, 1);
     grid2->addWidget(reset2Btn, 1, 0, 3, 1);
+
     central2_ = new QWidget(this);
     central2_->setLayout(grid2);
     setCentralWidget(central2_);
@@ -437,18 +478,26 @@ void AOPConsoleWindow::setup3()
         complete3Btn->setStyleSheet("background-color: green; color: white; font: bold 14px;");
         reset3Btn->setDisabled(false);
     });
-    connect(omc_plot, &Plot::filtered, this, &AOPConsoleWindow::onOmc_plotFiltering);
+    connect(omc_plot, &Plot::filtered, this, &AOPConsoleWindow::onOMC_Filtering);
     complete3Btn = new QPushButton("NEXT \n STEP", this);
     complete3Btn->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
     reset3Btn = new QPushButton("RESET", this);
     reset3Btn->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
     reset3Btn->setStyleSheet("background-color: red; color: white; font: bold 14px;");
 
-    esc_pBtn = new QPushButton("Exit (ESC)", this);
-    undo_pBtn = new QPushButton("Undo (CTRL+Z)", this);
-    up_pBtn = new QPushButton("Clear above (Key_Up)", this);
-    down_pBtn = new QPushButton("Clear below (Key_Down)", this);
+    QFont btnBigFont = QFont("Courier New", 10, QFont::Bold);
+
+    esc_pBtn = new QPushButton("Exit\n(ESC)", this);
+    undo_pBtn = new QPushButton("Undo\n(CTRL+Z)", this);
+    up_pBtn = new QPushButton("Clear above\n(Key_Up)", this);
+    down_pBtn = new QPushButton("Clear below\n(Key_Down)", this);
+    saveexit_pBtn = new QPushButton("Save and Exit", this);
+    saveexit_pBtn->setFont(btnBigFont);
     filtBtn = new QPushButton("Auto-Filter", this);
+    filtBtn->setFont(btnBigFont);
+    applyTRB_pBtn = new QPushButton("Evaluate\nTB and RB", this);
+    applyTRB_pBtn->setFont(btnBigFont);
+
     // simulate key press while clicking these buttons
     connect(esc_pBtn, &QPushButton::clicked, this, [&](){
         QKeyEvent *e = new QKeyEvent(QEvent::KeyPress, Qt::Key_Escape, Qt::NoModifier);
@@ -475,21 +524,59 @@ void AOPConsoleWindow::setup3()
             defe_r[i] = sEfem.data[i].range*1000;
             if (defe_t[i] < defe_t[0]) defe_t[i]+=86400.;
         }
-        omc_plot->autoFilter(defe_t,defe_r, 10, 0.25, 0.5, 2);
+        omc_plot->autoFilter(defe_t,defe_r, bandLengthVal->value(), bandWidthVal->value(), snrVal->value(), sigmaVal->value());
         omc_plot->setFocus();
     });
+    connect(applyTRB_pBtn, &QPushButton::clicked, this, [&](){
+        omc_plot->evaluateTRB();
+        if (omc_plot->graph(0)->data()->isEmpty()) return;
+        applyTRB_pBtn->setDisabled(true);
+    });
+    connect(saveexit_pBtn, &QPushButton::clicked, this, [&](){
+        emit omc_plot->user_finished(true);
+    });
 
-    grid3->addWidget(new CustomTitle("Observation fitting, OMC plotting and filtering"), 0, 1, 1, 5);
-    grid3->addWidget(reset3Btn, 1, 0, 2, 1);
-    grid3->addWidget(esc_pBtn, 1, 1);
-    grid3->addWidget(undo_pBtn, 1, 2);
+    // sliders for autofilter parameters
+    bandLengthVal = new CustomSlider(Qt::Horizontal, 1, "Band Length (points)",  this);
+    bandLengthVal->slider->setTickInterval(1);
+    bandLengthVal->setRange(5, 50);
+    bandLengthVal->slider->setValue(10);
+
+    bandWidthVal = new CustomSlider(Qt::Horizontal, 1e-2, "Band Width (m)", this);
+    bandWidthVal->slider->setTickInterval(1);
+    bandWidthVal->setRange(10, 100); // in cm
+    bandWidthVal->slider->setValue(25);
+
+    snrVal = new CustomSlider(Qt::Horizontal, 1e-2, "SNR", this);
+    snrVal->slider->setTickInterval(1);
+    snrVal->setRange(5, 200); // in persents
+    snrVal->slider->setValue(50);
+
+    sigmaVal = new CustomSlider(Qt::Horizontal, 1e-1, "Sigma Threshold", this);
+    sigmaVal->slider->setTickInterval(1);
+    sigmaVal->setRange(10, 30); // in sigma/10
+    sigmaVal->slider->setValue(20);
+
+    grid3->addWidget(new CustomTitle("Observation fitting, OMC plotting and filtering"), 0, 1, 1, 6);
+    grid3->addWidget(reset3Btn, 1, 0, 6, 1);
+    grid3->addWidget(bandLengthVal, 1, 1);
+    grid3->addWidget(bandWidthVal, 1, 2);
     grid3->addWidget(filtBtn, 1, 3);
-    grid3->addWidget(up_pBtn, 1, 4);
-    grid3->addWidget(down_pBtn, 1, 5);
-    grid3->addWidget(omc_plot, 2, 1, 1, 5);
-    grid3->addWidget(complete3Btn, 1, 6, 2, 1);
+    grid3->addWidget(snrVal, 1, 4);
+    grid3->addWidget(sigmaVal, 1, 5);
+    grid3->addWidget(omc_plot, 2, 1, 5, 5);
+    QVBoxLayout *vbl = new QVBoxLayout(this);
+    vbl->addWidget(esc_pBtn);
+    vbl->addWidget(undo_pBtn);
+    vbl->addWidget(up_pBtn);
+    vbl->addWidget(down_pBtn);
+    vbl->addWidget(applyTRB_pBtn);
+    grid3->addLayout(vbl, 2, 6, 5, 1);
+    grid3->addWidget(saveexit_pBtn, 1, 6);
+    grid3->addWidget(complete3Btn, 1, 7, 6, 1);
     grid3->setRowStretch(1,1);
     grid3->setRowStretch(2,2);
+
     central3_ = new QWidget(this);
     central3_->setLayout(grid3);
     setCentralWidget(central3_);
@@ -512,6 +599,7 @@ void AOPConsoleWindow::reset3()
     // disable interface until user proceed with plot (until onOmc_plotFinish func. called)
     reset3Btn->setDisabled(true);
     complete3Btn->setDisabled(true);
+    applyTRB_pBtn->setDisabled(false);
     plot_omc(1);
 }
 
@@ -525,30 +613,35 @@ void AOPConsoleWindow::setup4()
         complete4Btn->setStyleSheet("background-color: green; color: white; font: bold 14px;");
         reset4Btn->setDisabled(false);
     });
-    connect(omc_plot, &Plot::filtered, this, &AOPConsoleWindow::onOmc_plotFiltering);
+    connect(omc_plot, &Plot::filtered, this, &AOPConsoleWindow::onOMC_Filtering);
     complete4Btn = new QPushButton("NEXT \n STEP", this);
     complete4Btn->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
     reset4Btn = new QPushButton("RESET", this);
     reset4Btn->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);
     reset4Btn->setStyleSheet("background-color: red; color: white; font: bold 14px;");
 
-    recalcTRB_pBtn = new QPushButton("Recalculate TB \& RB", this);
+    recalcTRB_pBtn = new QPushButton("Recalculate\nTB and RB", this);
     connect(recalcTRB_pBtn, &QPushButton::clicked, this, [&](){
         onOmc_plotFinish(true);
         reset4();
     });
 
-    grid4->addWidget(new CustomTitle("Time and Range Bias calculation, OMC plotting and filtering"), 0, 1, 1, 5);
-    grid4->addWidget(reset4Btn, 1, 0, 2, 1);
-    grid4->addWidget(esc_pBtn, 1, 1);
-    grid4->addWidget(undo_pBtn, 1, 2);
-    grid4->addWidget(recalcTRB_pBtn, 1, 3);
-    grid4->addWidget(up_pBtn, 1, 4);
-    grid4->addWidget(down_pBtn, 1, 5);
-    grid4->addWidget(omc_plot, 2, 1, 1, 5);
-    grid4->addWidget(complete4Btn, 1, 6, 2, 1);
+    grid4->addWidget(new CustomTitle("Time and Range Bias calculation, OMC plotting and filtering"), 0, 1, 1, 2);
+    grid4->addWidget(reset4Btn, 1, 0, 5, 1);
+    grid4->addWidget(omc_plot, 1, 1, 5, 1);
+    QVBoxLayout *vbl = new QVBoxLayout(this);
+    vbl->addWidget(saveexit_pBtn);
+    vbl->addWidget(recalcTRB_pBtn);
+    vbl->addWidget(esc_pBtn);
+    vbl->addWidget(undo_pBtn);
+    vbl->addWidget(up_pBtn);
+    vbl->addWidget(down_pBtn);
+    grid4->addLayout(vbl, 1, 2, 5, 1);
+    grid4->addWidget(complete4Btn, 1, 3, 5, 1);
     grid4->setRowStretch(1,1);
     grid4->setRowStretch(2,2);
+    grid4->setColumnStretch(1,1);
+
     central4_ = new QWidget(this);
     central4_->setLayout(grid4);
     setCentralWidget(central4_);
@@ -583,6 +676,7 @@ void AOPConsoleWindow::setup5()
     grid5->addWidget(new CustomTitle("Polynomial fitting. Normal point extraction."), 0, 0, 1, 2);
     grid5->addWidget(polyTable, 1, 0);
     grid5->addWidget(complete5Btn, 1, 2, 2, 1);
+
     central5_ = new QWidget(this);
     central5_->setLayout(grid5);
     setCentralWidget(central5_);
@@ -591,7 +685,7 @@ void AOPConsoleWindow::setup5()
     REFIT:
     calc_TimeRangeBias();
     polynom_fit();
-    rms = UniqueKAT_OBS::Instance()->cat[nrObs-1].RMS * 2.e-9*C_VEL/2.; // get RMS from catalogue
+    rms = UniqueKAT_OBS::Instance()->cat[nrObs-1].RMS * 2.5e-9*C_VEL/2.; // get RMS from catalogue
 
     REFILTER:
     if (filterPolyResiduals(rms)) {
@@ -643,6 +737,7 @@ void AOPConsoleWindow::setup6()
     grid6->addWidget(npt_content, 2, 0);
     grid6->addWidget(frd_content, 2, 1);
     grid6->addWidget(send, 3, 0, 1, 2);
+
     central6_ = new QWidget(this);
     central6_->setLayout(grid6);
     setCentralWidget(central6_);
@@ -898,7 +993,7 @@ void AOPConsoleWindow::obsHighlighted(int row, int column)
 
 
 
-void AOPConsoleWindow::onOmc_plotFiltering(int pointsRemain)
+void AOPConsoleWindow::onOMC_Filtering(int pointsRemain)
 {
     statusBar()->showMessage("Selected nrObs = " + QString::number(nrObs) + " (" + QString(UniqueKAT_OBS::Instance()->cat[nrObs-1].namefe) +
                              "), points left - " + QString::number(pointsRemain) + " out of " + QString::number(UniqueKAT_OBS::Instance()->cat[nrObs-1].npoint));
@@ -1335,9 +1430,9 @@ void AOPConsoleWindow::plot_omc(int type)
 //    QVector<double> Xbackup(X);
     for (int i=1; i<selectedObs.npoint; ++i) {
         if(X[i] < X[0])   X[i] += 86400.;
-        X[i] -= X[0];
+//        X[i] -= X[0];
     }
-    X[0] = 0;
+//    X[0] = 0;
 
     switch(type) {
       case(1): {sprintf(header2," ");					break;}
@@ -1365,17 +1460,24 @@ void AOPConsoleWindow::plot_omc(int type)
     omc_plot->graph()->setData(X, Y);
     omc_plot->isPointDropped.fill(false, X.size());
 
+    int efemPoints = sEfem.data.size();
+    QVector<double> defe_t(efemPoints), defe_r(efemPoints);
+    for (int i=0; i<efemPoints; ++i) {
+        defe_t[i] = sEfem.data[i].sec;
+        defe_r[i] = sEfem.data[i].range*1000;
+        if (defe_t[i] < defe_t[0]) defe_t[i]+=86400.;
+    }
+    omc_plot->setEfemeris(defe_t, defe_r);
+
     omc_plot->xAxis->setLabel(QString("TIME [ S ]"));
     omc_plot->yAxis->setLabel(QString("RESIDUALS [ M ]"));
-
-    omc_plot->plotLayout()->addElement(0, 0, new QCPTextElement(omc_plot, QString(header1), QFont("sans", 12, QFont::Bold)));
-    omc_plot->plotLayout()->addElement(1, 0, new QCPTextElement(omc_plot, QString(header2), QFont("sans", 12, QFont::Bold)));
+    omc_plot->setTitles(QString(header1), QString(header2));
 
     omc_plot->graph()->rescaleAxes();
     omc_plot->replot();
     omc_plot->setFocus();
 
-    onOmc_plotFiltering(selectedObs.npoint);
+    onOMC_Filtering(selectedObs.npoint);
 }
 
 void AOPConsoleWindow::onOmc_plotFinish(bool save)
@@ -1559,6 +1661,9 @@ void AOPConsoleWindow::polynom_fit()
         return;
     }
 
+    polyTable->setText(polyTable->toPlainText()
+                       + "\nTB/RB - " + QString::number(selectedObs.TB, 'f', 4) + "/" + QString::number(selectedObs.RB, 'f', 4));
+
     std::vector<int> Q = {0,30,31,33,35,37,39,41,43,45,47,49,52,
         57,62,67,74,90,112,137,175,300};
     std::vector<double> FO1 =
@@ -1639,7 +1744,7 @@ void AOPConsoleWindow::polynom_fit()
             for(i=1;i<=selectedObs.npoint;i++)
             {
                 sa=array[i][k-1];
-                if (k==1) sa=1.L;
+                if (k==1) sa=1.;
                 sl+=sa*array[i][0];
                 sm+=sa*sa;
 
@@ -1672,7 +1777,7 @@ void AOPConsoleWindow::polynom_fit()
             for(m=1,sl=0.;m<=j1;m++)
             {
                 xx=array[i][m-1];
-                if (m==1) xx=1.L;
+                if (m==1) xx=1.;
                 sl+=a[m]*xx;
                 jy=jc+a[m]*xx;
                 jt=js+jy;
@@ -1797,7 +1902,7 @@ void AOPConsoleWindow::polynom_fit()
         sprintf(table + strlen(table), "%8d",wss[j]);
     sprintf(table + strlen(table), "\n");
 
-    polyTable->setText(QString::fromLatin1(table));
+    polyTable->setText(polyTable->toPlainText() + "\n" + QString::fromLatin1(table));
     polyTable->setFont(QFont("Courier New",9,QFont::Monospace));
     polyTable->setReadOnly(true);
 
@@ -1808,7 +1913,7 @@ void AOPConsoleWindow::polynom_fit()
     }
 
     for (i=0; i<selectedObs.npoint; ++i)
-        sDeriv.data[i].czeb = static_cast<double>(jjx[i][mx-1])*1.e-4;
+        sDeriv.data[i].czeb = static_cast<double>(jjx[i+1][mx-1])*1.e-4;
 
     selectedObs.RMS = sqrt(d1[mx])*2.e+9/C_VEL;
     selectedObs.POLY = mx-1;
@@ -1892,10 +1997,14 @@ bool AOPConsoleWindow::filterPolyResiduals(double rms)
             deriv.data.push_back(sDeriv.data[i]);
         }
 
+    polyTable->setText(polyTable->toPlainText() +
+                       "\n rms = " + QString::number(rms, 'f', 5) + ", left/total - " + QString::number(np) + "/" + QString::number(selectedObs.npoint));
+
     if (np == selectedObs.npoint) return true;
 
     selectedObs.RMS = sqrt(mean/static_cast<double>(np-selectedObs.POLY))*2.e+9/C_VEL;
     selectedObs.npoint = np;
+    onOMC_Filtering(np);
 
     UniqueKAT_OBS::Instance()->cat[nrObs-1] = selectedObs;
     sCopy = copy;
@@ -1912,7 +2021,7 @@ bool AOPConsoleWindow::validationNP()
     std::vector<double> tab_time(5000), v(5000), plo0(10001), plo1(10001);
     std::vector<bool> ind(10001);
 
-    int period = satelliteInfo.np_window;
+    double period = static_cast<double>(satelliteInfo.np_window);
 
     int dd, mt, yy;
     utility::mjd_dat(dd,mt,yy, selectedObs.mjd);
@@ -1932,14 +2041,14 @@ bool AOPConsoleWindow::validationNP()
     double sum_time = tab_time[1] = plo0[1];
     double vsum = v[1] = plo1[1];
     double end_time = static_cast<double>(vx1+1)*period;
-    int licz = 0;
+    int licz = 0, nnpoint = selectedObs.npoint+1;
     double summa = 0.;
     double mean_time, mean_range, vv_mean, tim, timm[60], rmss[60], timdel[10];
     int jj, k = 0;
 
-    for (int j=2; j<=selectedObs.npoint+1; ++j) {
+    for (int j=2; j<=nnpoint; ++j) {
         int vx;
-        if (j == selectedObs.npoint+1) vx = -1;
+        if (j == nnpoint) vx = -1;
         else vx = static_cast<int>(plo0[j]/period);
 
         if (plo0[j]<=end_time && vx==vx1) {
@@ -1953,8 +2062,8 @@ bool AOPConsoleWindow::validationNP()
                 mean_time = tab_time[1];
                 mean_range = v[1];
             } else {
-                mean_time = sum_time/l;
-                vv_mean = vsum/l;
+                mean_time = sum_time/static_cast<double>(l);
+                vv_mean = vsum/static_cast<double>(l);
                 vsum = 0.;
                 for (jj=1; jj<=l; ++jj)
                     vsum += (v[jj]-vv_mean)*(v[jj]-vv_mean);
@@ -1979,16 +2088,16 @@ bool AOPConsoleWindow::validationNP()
             vx1 = static_cast<int>(plo0[j]/period);
             tab_time[l] = sum_time = plo0[j];
             vsum = v[l] = plo1[j];
-            end_time = (vx+1)*period;
+            end_time = static_cast<double>(vx+1)*period;
         }
     }
 
     if (licz > 1) {
-        summa /= licz;
+        summa /= static_cast<double>(licz);
         double xy = 0.;
         for (int i=1; i<=licz; ++i)
             xy += (summa-rmss[i])*(summa-rmss[i]);
-        xy = 2*sqrt(xy/(licz-1));
+        xy = 3.*sqrt(xy/static_cast<double>(licz-1));
 
         k = 0;
         for (int i=1; i<=licz; ++i)
@@ -2025,6 +2134,7 @@ bool AOPConsoleWindow::validationNP()
 //    info("Removed : " + QString::number(selectedObs.npoint-jj) + " points, Left : " + QString::number(jj) + " points.");
 
     selectedObs.npoint = jj;
+    onOMC_Filtering(jj);
     if( std::abs(selectedObs.secday-tstart) > 80000L) selectedObs.mjd++;
     selectedObs.secday = tstart;
     selectedObs.RMS = selectedObs.POLY = 0.;
@@ -2144,15 +2254,18 @@ void AOPConsoleWindow::plot_NP()
         for (int j=0; j<licz; ++j)
             if (fabs(rmss[j]-summa) < xy) {         // < 2.5 sigma
                 Xl.push_back(timm[j]-X.first());
-                Yl.push_back(rmss[j]);
+                Yl.push_back(rmss[j] * 100.); // in cm
             } else {                                // > 2.5 sigma
                 XL.push_back(timm[j]-X.first());
-                YL.push_back(rmss[j]);
+                YL.push_back(rmss[j] * 100.); // in cm
             }
     }
     for (int i=1; i<X.size(); ++i)
         X[i] -= X[0];
     X[0] = 0;
+
+    for (int i=0; i<Y.size(); ++i) // in cm
+        Y[i] *= 100.;
 
     if (nql_plot != nullptr) {
         grid5->removeWidget(nql_plot);
@@ -2164,26 +2277,24 @@ void AOPConsoleWindow::plot_NP()
     nql_plot->graph()->setData(X,Y);
     nql_plot->graph()->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssDisc, Qt::blue, PIXEL_SIZE));
     nql_plot->graph()->setLineStyle(QCPGraph::lsNone);
-    nql_plot->graph()->rescaleAxes();
     nql_plot->addGraph();
     nql_plot->graph()->setData(Xl,Yl);
     nql_plot->graph()->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, Qt::green, PIXEL_SIZE*2));
     nql_plot->graph()->setLineStyle(QCPGraph::lsNone);
-    nql_plot->graph()->rescaleAxes();
     nql_plot->addGraph();
     nql_plot->graph()->setData(XL,YL);
     nql_plot->graph()->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, Qt::green, PIXEL_SIZE*3));
     nql_plot->graph()->setLineStyle(QCPGraph::lsNone);
-    nql_plot->graph()->rescaleAxes();
+    nql_plot->rescaleAxes();
     nql_plot->xAxis->setLabel(QString("TIME [ S ]"));
-    nql_plot->yAxis->setLabel(QString("RESIDUALS [ M ]"));
+    nql_plot->yAxis->setLabel(QString("RESIDUALS [ CM ]"));
     nql_plot->plotLayout()->insertRow(0);
     nql_plot->plotLayout()->addElement(0, 0, new QCPTextElement(nql_plot, QString(header1), QFont("sans", 11, QFont::Bold)));
     nql_plot->plotLayout()->insertRow(1);
     nql_plot->plotLayout()->addElement(1, 0, new QCPTextElement(nql_plot, QString(header2), QFont("sans", 11, QFont::Bold)));
 
     grid5->addWidget(nql_plot, 1, 1);
-    grid5->setColumnStretch(1,1000);
+//    grid5->setColumnStretch(1,1000);
 }
 
 void AOPConsoleWindow::writeKobs_Log()
@@ -2503,21 +2614,21 @@ void AOPConsoleWindow::prepareResults()
     sprintf(buf,"40 %18.12lf %1d %4s %8d %8d %7.3lf %10.1lf %8.1lf %6.1lf %7.3lf %7.3lf %6.1lf %1d %1d %1d %1d %5.1lf",
               static_cast<double>(selectedKal1.secday),cal_type,sys_conf,(selectedKal1.nflash+selectedKal2.nflash)/2,(selectedKal1.nreturn+selectedKal2.nreturn)/2,
               (selectedKal1.target+selectedKal2.target)/2,(cal_peak1+cal_peak2)/2,shift*1000.0,rms_cal*1000.0,(selectedKal1.skew+selectedKal2.skew)/2,(selectedKal1.kurt+selectedKal2.kurt)/2,
-              (cal_peak1+cal_peak2)/2,cal_type_ind,cal_shift_ind,det_canal,cal_span, ret_rate_40);
+              0.0,cal_type_ind,cal_shift_ind,det_canal,cal_span, ret_rate_40);
     NPT_CRD << buf << std::endl;
     FRD_CRD << buf << std::endl;
 
     sprintf(buf,"41 %18.12lf %1d %4s %8d %8d %7.3lf %10.1lf %8.1lf %6.1lf %7.3lf %7.3lf %6.1lf %1d %1d %1d %1d %5.1lf",
               static_cast<double>(selectedKal1.secday),cal_type,sys_conf,selectedKal1.nflash,selectedKal1.nreturn,
-              selectedKal1.target,cal_peak1,shift*1000.0,selectedKal1.rms*1000.0,selectedKal1.skew,selectedKal1.kurt,cal_peak1,
+              selectedKal1.target,cal_peak1,shift*1000.0,selectedKal1.rms*1000.0,selectedKal1.skew,selectedKal1.kurt,0.0,
               cal_type_ind,cal_shift_ind,det_canal,1,ret_rate_41b);
     NPT_CRD << buf << std::endl;
     FRD_CRD << buf << std::endl;
 
     sprintf(buf,"41 %18.12lf %1d %4s %8d %8d %7.3lf %10.1lf %8.1lf %6.1lf %7.3lf %7.3lf %6.1lf %1d %1d %1d %1d %5.1lf",
-          static_cast<double>(selectedKal2.secday),cal_type,sys_conf,selectedKal2.nflash,selectedKal2.nreturn,
-          selectedKal2.target,selectedKal2.meanval*1000.0,shift*1000.0,selectedKal2.rms*1000.0,selectedKal2.skew,selectedKal2.kurt,cal_peak2,
-          cal_type_ind,cal_shift_ind,det_canal,2,ret_rate_41a);
+              static_cast<double>(selectedKal2.secday),cal_type,sys_conf,selectedKal2.nflash,selectedKal2.nreturn,
+              selectedKal2.target,cal_peak2,shift*1000.0,selectedKal2.rms*1000.0,selectedKal2.skew,selectedKal2.kurt,0.0,
+              cal_type_ind,cal_shift_ind,det_canal,2,ret_rate_41a);
     NPT_CRD << buf << std::endl;
     FRD_CRD << buf << std::endl;
 

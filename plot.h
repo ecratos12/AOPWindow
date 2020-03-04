@@ -22,6 +22,10 @@ public slots:
     void clear();
     void autoFilter(const QVector<double> &et, const QVector<double> &er,
                     int bandLength, double bandWidth, double snr, double sigmaRate);
+    void setTitles(QString h1, QString h2);
+    void setEfemeris(const QVector<double> &et, const QVector<double> &er);
+
+    void evaluateTRB();
 
 protected:
     virtual void mousePressEvent(QMouseEvent *event) override;
@@ -44,7 +48,14 @@ protected:
     QPoint start, stop;      // pixel values
     QPointF xyStart, xyStop; // graph values
     bool isReadyForFiltering;
+
+    bool trb_evaluated;
+    double TB, RB, eTB, eRB; // roughly evaluated
+    QVector<double> _et, _er;
+
     QList<QPair<QCPGraphDataContainer, DropFlags>> dataHistory;
+    QCPTextElement *_h1, *_h2;
+    QVector<QCPGraphData> selSignalPoints;
 //    QVector<double> Xinit, Yinit;
 };
 
