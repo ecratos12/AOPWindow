@@ -1,5 +1,6 @@
 #include "plot.h"
 #include <QPainter>
+#include "utility.h"
 
 Plot::Plot(QWidget *parent) : QCustomPlot(parent),
     _h1(nullptr),
@@ -8,6 +9,8 @@ Plot::Plot(QWidget *parent) : QCustomPlot(parent),
     isReadyForFiltering = false;
     trb_evaluated = false;
 
+    addGraph();
+    addGraph();
     addGraph();
     addGraph();
     graph()->setLineStyle(QCPGraph::lsNone);
@@ -116,7 +119,7 @@ void Plot::evaluateTRB()
 
     graph()->setData(xall,yall);
     graph(0)->setData(xsig,ysig);
-    graph()->rescaleAxes();
+    rescaleAxes();
     setTitles(_h1->text(), QString("RB = " + QString::number(RB, 'f', 4) + " +- " + QString::number(eRB, 'f', 4) + " m, " +
                                    "TB = " + QString::number(TB*1000., 'f', 4) + " +- " + QString::number(eTB*1000., 'f', 4) + " ms"));
     trb_evaluated = true;
@@ -169,7 +172,7 @@ void Plot::mouseDoubleClickEvent(QMouseEvent *event)
             ++fi;
         }
     }
-    graph()->rescaleAxes();
+    rescaleAxes();
     replot();
 }
 
@@ -217,7 +220,7 @@ void Plot::keyPressEvent(QKeyEvent *event)
             auto t = dataHistory.takeLast();
             graph()->data()->set(t.first);
             isPointDropped = t.second;
-            graph()->rescaleAxes();
+            rescaleAxes();
             replot();
             emit filtered(graph()->data()->size());
         }
@@ -245,7 +248,7 @@ void Plot::clearAbove()
             ++fi;
         }
     }
-    graph()->rescaleAxes();
+    rescaleAxes();
     replot();
     emit filtered(graph()->data()->size());
 }
@@ -268,7 +271,7 @@ void Plot::clearBelow()
             ++fi;
         }
     }
-    graph()->rescaleAxes();
+    rescaleAxes();
     replot();
     emit filtered(graph()->data()->size());
 }
@@ -277,7 +280,8 @@ void Plot::autoFilter(const QVector<double> &et, const QVector<double> &er,
                       int bandLength, double bandWidth, double snr, double sigmaRate)
 {
     double minR,maxR,maxAcc,minV,maxV;
-    double maxTB = 1e-1; // robust assumption to calculate max possible acceleration -> max OMC curve's slope
+    const double maxTB = 1; // robust assumption to calculate max possible acceleration -> max OMC curve's slope
+    const int CARRIER_SIZE = 50; // number of signal points that are used to propagate band
 
     QVector<double> acc(et.size()-2);
     for (int i=0; i<acc.size(); ++i) // calculate velocity in efemeris
@@ -330,9 +334,10 @@ void Plot::autoFilter(const QVector<double> &et, const QVector<double> &er,
     }
 
     // variables for algo
-    int i,segmentFinishPos,inPoints;
+    int i,segmentFinishPos,inPoints,countSkipped;
     double k,b,yBot,yTop,y,x0;
-    bool moveBandFlag = false;
+    bool useFan = true;
+    QVector<QCPGraphData> carriers(CARRIER_SIZE); // points that define a sliding band
 
     // re-assamble drop flags due to adding data by algorithm, not removing
     QVector<int> pdropIndexes(oldData.size());
@@ -344,44 +349,154 @@ void Plot::autoFilter(const QVector<double> &et, const QVector<double> &er,
     isPointDropped.fill(true);
     graph()->data()->clear();
 
-    // perform fan search
-    for (int pos=bandLength; pos<=oldData.size(); ++pos) { // move band end position
-        for (k = -maxAcc; k < maxAcc+1e-10; k += maxAcc/50) {
-            for (b = minR; b < maxR+1e-10; b += bandWidth) { // create band based on r=kt+b
-                inPoints = 0;
-                moveBandFlag = false;
-                x0 = oldData.at(pos-bandLength)->key;
-                for (i=bandLength; i>0; --i) {
-                    yBot = k*(oldData.at(pos-i)->key - x0) + b - bandWidth/2;
-                    yTop = yBot + bandWidth;
-                    y = oldData.at(pos-i)->value;
-                    if (y > yBot && y < yTop)
-                        ++inPoints;
-                }
+    graph(1)->data()->clear();
+    graph(2)->data()->clear();
+    graph(1)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssNone, 1));
+    QPen pen;
+    pen.setStyle(Qt::DotLine);
+    pen.setWidth(1);
+    pen.setColor(QColor(180,180,180));
+    graph(1)->setPen(pen);
+    graph(1)->setBrush(QBrush(QColor(255,50,30,20)));
+    graph(1)->setChannelFillGraph(graph(2));
+    graph(2)->setPen(pen);
 
-                if (inPoints > snr*bandLength) {
-                    segmentFinishPos = 0;
-                    for (i=bandLength; i>0; --i) {
-                        yBot = k*(oldData.at(pos-i)->key - x0) + b - bandWidth/2;
+    bandLength = static_cast<int>(CARRIER_SIZE/snr);
+    for (int pos=0; pos<oldData.size(); ++pos) {
+
+        if (useFan) { // perform scanning for new carrier points
+
+            x0 = oldData.at(pos)->key; // current position (time)
+            for (k = -maxAcc; k < maxAcc+1e-10; k+= maxAcc/50) {
+                for (b = minR; b < maxR+1e-10; b += bandWidth/2) {
+
+                    inPoints = 0;
+                    for (i=0; i<bandLength; ++i) {
+                        if (pos+i >= oldData.size()) break;
+                        yBot = k*(oldData.at(pos+i)->key - x0) + b - bandWidth/2;
                         yTop = yBot + bandWidth;
-                        y = oldData.at(pos-i)->value;
-                        if (y > yBot && y < yTop) {
-                            graph()->addData(oldData.at(pos-i)->key, y);
-                            isPointDropped[ pdropIndexes[pos-i] ] = false;
-                            segmentFinishPos = pos-i;
-                        }
+                        y = oldData.at(pos+i)->value;
+                        if (y > yBot && y < yTop)
+                            ++inPoints;
                     }
-                    pos = segmentFinishPos+bandLength+1;
-                    moveBandFlag = true;
-                    break;
+                    if (inPoints >= CARRIER_SIZE) { // once CARRIER_SIZE points are found inside band, consider them as signal and save them
+                        inPoints = 0;
+                        for (i=0; i<bandLength; ++i) {
+                            if (pos+i >= oldData.size()) break;
+                            yBot = k*(oldData.at(pos+i)->key - x0) + b - bandWidth/2;
+                            yTop = yBot + bandWidth;
+                            y = oldData.at(pos+i)->value;
+                            if (y > yBot && y < yTop) {
+                                graph()->addData(oldData.at(pos+i)->key, y);
+                                isPointDropped[ pdropIndexes[pos+i] ] = false;
+                                segmentFinishPos = pos+i;
+
+                                carriers[inPoints++] = *(oldData.at(pos+i));
+                                if (inPoints==CARRIER_SIZE) break;
+                            }
+                        }
+                        useFan = false;
+                        pos = segmentFinishPos+1;
+                        countSkipped = 0;
+
+                        // graph #1 and #2 used to illustrate sliding band
+                        graph(1)->addData(x0, b - bandWidth/2);
+                        graph(1)->addData(oldData.at(segmentFinishPos)->key, k*(oldData.at(segmentFinishPos)->key - x0) + b - bandWidth/2);
+                        graph(2)->addData(x0, b + bandWidth/2);
+                        graph(2)->addData(oldData.at(segmentFinishPos)->key, k*(oldData.at(segmentFinishPos)->key - x0) + b + bandWidth/2);
+
+                        break;
+                    }
                 }
+                if (!useFan) break; // after first CARRIER_SIZE signal points were found, stop scanning -- start to propagate instead
             }
-            if (moveBandFlag) break;
+            if (pos >= oldData.size()) break;
+        }
+
+        if (!useFan) { // perform signal propagation using sliding band
+
+            // solve "ycar = k*xcar + b" by least squares to create a band
+            double sx=0,sxx=0,sy=0,syx=0;
+            for (i=0; i<CARRIER_SIZE; ++i) {
+                sx += carriers[i].key;
+                sxx += carriers[i].key*carriers[i].key;
+                sy += carriers[i].value;
+                syx += carriers[i].key*carriers[i].value;
+            }
+            double det = CARRIER_SIZE*sxx-sx*sx;
+            k = (CARRIER_SIZE*syx-sx*sy)/det;
+            b = (sxx*sy-sx*syx)/det;
+
+            if (fabs( k*oldData.at(pos)->key + b - oldData.at(pos)->value ) < bandWidth) { // if next point is inside band (i.e. signal) - add it to carriers
+                for (i=0; i<CARRIER_SIZE-1; ++i)
+                    carriers[i] = carriers[i+1]; // move forward carrier set
+                carriers[CARRIER_SIZE-1] = *(oldData.at(pos));
+
+                graph()->addData(oldData.at(pos)->key, oldData.at(pos)->value);
+                isPointDropped[ pdropIndexes[pos] ] = false;
+
+                graph(1)->addData(oldData.at(pos-countSkipped-1)->key, k*oldData.at(pos-countSkipped-1)->key + b - bandWidth/2);
+                graph(1)->addData(oldData.at(pos)->key, k*oldData.at(pos)->key + b - bandWidth/2);
+                graph(2)->addData(oldData.at(pos-countSkipped-1)->key, k*oldData.at(pos-countSkipped-1)->key + b + bandWidth/2);
+                graph(2)->addData(oldData.at(pos)->key, k*oldData.at(pos)->key + b + bandWidth/2);
+
+                countSkipped = 0;
+            } else {
+                ++countSkipped;
+            }
+
+            if (countSkipped > bandLength) // if signal propagation is unsuccesful - scan new carriers points
+                useFan = true;
         }
     }
 
+//    bool moveBandFlag = false;
 
-    graph()->rescaleAxes();
+//    // perform fan search
+//    for (int pos=bandLength; pos<=oldData.size(); ++pos) { // move band end position
+//        for (k = -maxAcc; k < maxAcc+1e-10; k += maxAcc/50) {
+//            for (b = minR; b < maxR+1e-10; b += bandWidth/2) { // create band based on r=kt+b
+//                inPoints = 0;
+//                moveBandFlag = false;
+//                x0 = oldData.at(pos-bandLength)->key;
+//                for (i=bandLength; i>0; --i) {
+//                    yBot = k*(oldData.at(pos-i)->key - x0) + b - bandWidth/2;
+//                    yTop = yBot + bandWidth;
+//                    y = oldData.at(pos-i)->value;
+//                    if (y > yBot && y < yTop)
+//                        ++inPoints;
+//                }
+
+//                if (inPoints > snr*bandLength) {
+//                    segmentFinishPos = 0;
+//                    for (i=bandLength; i>0; --i) {
+//                        yBot = k*(oldData.at(pos-i)->key - x0) + b - bandWidth/2;
+//                        yTop = yBot + bandWidth;
+//                        y = oldData.at(pos-i)->value;
+//                        if (y > yBot && y < yTop) {
+//                            graph()->addData(oldData.at(pos-i)->key, y);
+//                            isPointDropped[ pdropIndexes[pos-i] ] = false;
+//                            segmentFinishPos = pos-i;
+//                        }
+//                    }
+//                    pos = segmentFinishPos+bandLength+1;
+//                    moveBandFlag = true;
+
+//                    // graph #1 and #2 used to illustrate sliding band
+//                    graph(1)->addData(oldData.at(segmentFinishPos)->key, k*(oldData.at(segmentFinishPos)->key - x0) + b - bandWidth/2);
+//                    graph(1)->addData(oldData.at(pos-1)->key, k*(oldData.at(pos-1)->key - x0) + b - bandWidth/2);
+//                    graph(2)->addData(oldData.at(segmentFinishPos)->key, k*(oldData.at(segmentFinishPos)->key - x0) + b + bandWidth/2);
+//                    graph(2)->addData(oldData.at(pos-1)->key, k*(oldData.at(pos-1)->key - x0) + b + bandWidth/2);
+
+//                    break;
+//                }
+//            }
+//            if (moveBandFlag) break;
+//        }
+//    }
+
+
+    rescaleAxes();
     replot();
     emit filtered(graph()->data()->size());
 }

@@ -285,7 +285,7 @@ bool datamodels::Kobs::write(const std::string& fname)
     }
     char buf[256];
     for (KobsElem r: data) {
-        sprintf(buf, FormatPGA_W,
+        sprintf(buf, FormatKGA_W,
                 r.sec, r.azym, r.elev, r.range, r.ampl, r.czeb1);
         out << buf << std::endl;
     }

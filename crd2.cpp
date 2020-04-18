@@ -145,7 +145,7 @@ void CRD_FILE::write_H5() {}
 void CRD_FILE::write_H8()
 {
     file << "H8" << std::endl;
-    content.append("H8");
+    content.append("H8\n");
 }
 
 /*!
@@ -154,7 +154,8 @@ void CRD_FILE::write_H8()
 void CRD_FILE::write_H9()
 {
     file << "H9" << std::endl;
-    content.append("H9");
+    content.append("H9\n");
+    file.close();
 }
 
 /*!
@@ -409,7 +410,7 @@ void CRD_FILE::write_42() {}
  */
 void CRD_FILE::write_50(char *sys_conf, double rms_ps, double skew, double kurt, double peak_ps, int data_qlt_type)
 {
-    sprintf(buf, "50 %4s %6.1lf %7.3lf %7.3lf %6.1lf %1d",
+    sprintf(buf, "50 %4s %6.1lf %7.3lf %7.3lf %6.1lf %1d\n",
             sys_conf,rms_ps,skew,kurt,peak_ps,data_qlt_type);
     file << buf;
     content.append(buf,strlen(buf));

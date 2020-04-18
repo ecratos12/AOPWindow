@@ -19,6 +19,7 @@
 #include "plot.h"
 #include "utility.h"
 #include "config.h"
+#include "crd2.h"
 
 class CustomSlider;
 
@@ -39,8 +40,6 @@ public:
     void fit_calibration(bool is_before);
     void fit_observation();
     void plot_omc(int type);
-
-    void fanFilter(QVector<double> &x, QVector<double> &y);
 
     void calc_TimeRangeBias();
     void polynom_fit();

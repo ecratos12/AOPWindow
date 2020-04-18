@@ -16,6 +16,8 @@ const double C_VEL = 299792458.0;
 #include <QStringList>
 #include <QAuthenticator>
 
+#include <curl/curl.h>
+
 CatTableItem::CatTableItem(const QString &text, int type) : QTableWidgetItem(text, type)
 {
     setFlags(Qt::ItemIsSelectable | Qt::ItemIsUserCheckable | Qt::ItemIsEnabled);
@@ -746,6 +748,17 @@ void AOPConsoleWindow::setup6()
     prepareResults();
 
     connect(send, &QPushButton::clicked, this, [&]() {
+
+
+
+
+
+
+
+
+
+
+
         // sending via FTP operations tbd...
 
         std::vector<Config::FtpSendForm> fs = Config::Instance()->ftpDestinationList();
@@ -790,7 +803,10 @@ void AOPConsoleWindow::setup6()
 
                 connect(reps1[reps1.size()-1], &QNetworkReply::finished, this, [&](){ // this will be executed when upload finishes
                     ++uploadsFinishedCount;
-                    replyMsgs += "FILE " + fnameNPT + " uploaded, \nResult: " + reps1[reps1.size()-1]->errorString() + "\n\n";
+                    replyMsgs += "FILE " + fnameNPT + " uploaded, \nResult: "
+                              + reps1[reps1.size()-1]->error()
+                              + "\n\n";
+
                     reps1[reps1.size()-1]->deleteLater();
                     qDebug() << reps1[reps1.size()-1]->error();
 
@@ -799,7 +815,10 @@ void AOPConsoleWindow::setup6()
                 });
                 connect(reps2[reps2.size()-1], &QNetworkReply::finished, this, [&](){
                     ++uploadsFinishedCount;
-                    replyMsgs += "FILE " + fnameFRD + " uploaded, \nResult: " + reps2[reps2.size()-1]->errorString() + "\n\n";
+                    replyMsgs += "FILE " + fnameFRD + " uploaded, \nResult: "
+                              +  reps2[reps2.size()-1]->error()
+                              + "\n\n";
+
                     reps2[reps2.size()-1]->deleteLater();
                     qDebug() << reps2[reps2.size()-1]->error();
 
@@ -888,7 +907,7 @@ void AOPConsoleWindow::updateCatCalTable(std::vector<datamodels::CalCatElem>& ca
     bool showAllCals = !(Config::Instance()->doFilterCalView());
     int r = 0;
 
-    for (int i = 0; i < cat.size(); ++i) {
+    for (size_t i = 0; i < cat.size(); ++i) {
         int64_t startObs = 86400*UniqueKAT_OBS::Instance()->cat[nrObs-1].mjd + UniqueKAT_OBS::Instance()->cat[nrObs-1].secday;
         int64_t startCal = 86400*cat[i].mjd + cat[i].secday;
 
@@ -2131,7 +2150,7 @@ bool AOPConsoleWindow::validationNP()
            deriv.data.push_back(sDeriv.data[i-1]);
            deriv.data.back().sec = copy.data.back().sec;
        }
-//    info("Removed : " + QString::number(selectedObs.npoint-jj) + " points, Left : " + QString::number(jj) + " points.");
+    info("Removed : " + QString::number(selectedObs.npoint-jj) + " points, Left : " + QString::number(jj) + " points.");
 
     selectedObs.npoint = jj;
     onOMC_Filtering(jj);
@@ -2307,10 +2326,10 @@ void AOPConsoleWindow::writeKobs_Log()
         return;
     }
 
-    if (sKobs.read(fnamekobs)) {
-        error("File " + QString(fnamekobs) + " has already created!");
-        return;
-    }
+//    if (sKobs.read(fnamekobs)) {
+//        error("File " + QString(fnamekobs) + " has already created!");
+//        return;
+//    }
 
     int elev_max = INT_MIN, range1_min = INT_MAX;
     double omc_min = 9e10, omc_max = -9e10;
@@ -2374,11 +2393,11 @@ void AOPConsoleWindow::prepareResults()
 {
     int	i,j,k,day,month,year,day_y,check_sum,l,jj,vx,vx1,year_cent,SYS_NUM,
         OCU_SEQ,TIM_SCALE,SYS_CALIB,CAL_INDIC,SYS_FLAG,flaglog=1,flag_cal;
-    double	corect,corecta,corectb,rmsk1,rmsk2,rms_cal,tim,range,shift,LAS_WAV,
+    double	corect,rms_cal,tim,range,shift,LAS_WAV,
             period,vsum,sum_time,end_time,mean_range,v_mean,vv_mean,mean_time,xx,
             mi1,mi2,mi3,mi4,mi_tim[5000],mean_peak,mean_rang;
     int	num[60],numer;
-    double timm[60],ran[60],rmss[60],summa,rmes[60];
+    double ran[60],summa;
     char	ss[70],ss1[2],name1[128],name2[128];
     int st_num,st_sys,st_occ,st_tim,trop_corr,cmas_corr,ampl_corr,sys_del,hz;
     int rang_typ,dig,sign;
@@ -2392,8 +2411,7 @@ void AOPConsoleWindow::prepareResults()
     char t_source[21],f_sourse[21],timer[21],s_num[21],str_name[9];
     double cal_peak1,cal_peak2;
     double las_en, feu_volt;
-    int cal_type,cal_shift;
-    int cal_type_ind,cal_shift_ind,det_canal;
+    int cal_type,cal_type_ind,cal_shift_ind,det_canal;
     double tab_time[5000],v[5000],rang[5000];
     std::string temp_line;
     char buf[256];
@@ -2454,16 +2472,19 @@ void AOPConsoleWindow::prepareResults()
     fnameNPT = QString(name1);
     fnameFRD = QString(name2);
 
-    std::ofstream NPT_CRD(name1);
-    if (!NPT_CRD.is_open()) {
-        error("Unable to write the NPT file " + fnameNPT + " !");
-        return;
-    }
-    std::ofstream FRD_CRD(name2);
-    if (!FRD_CRD.is_open()) {
-        error("Unable to write the FRD file " + fnameFRD + " !");
-        return;
-    }
+    NPT_FILE npt(fnameNPT.toStdString());
+    FRD_FILE frd(fnameFRD.toStdString());
+
+//    std::ofstream NPT_CRD(name1);
+//    if (!NPT_CRD.is_open()) {
+//        error("Unable to write the NPT file " + fnameNPT + " !");
+//        return;
+//    }
+//    std::ofstream FRD_CRD(name2);
+//    if (!FRD_CRD.is_open()) {
+//        error("Unable to write the FRD file " + fnameFRD + " !");
+//        return;
+//    }
     std::ifstream las_feu("D:\\LASER-2\\DATA\\las_feu.dat");
     if (!las_feu.is_open()) {
         error("Unable to open FILE D:\\LASER-2\\DATA\\las_feu.dat !");
@@ -2492,14 +2513,19 @@ void AOPConsoleWindow::prepareResults()
 
     time_t t = time(nullptr);
     struct tm tm = *localtime(&t);
-    sprintf(buf,"H1 CRD 02 %04d %02d %02d %02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour);
-    NPT_CRD << buf << std::endl;
-    FRD_CRD << buf << std::endl;
-    sprintf(buf,"H2 %10s %04d %02d %02d %02d EUROLAS",st_name,st_num,st_sys,st_occ,st_tim);
-    NPT_CRD << buf << std::endl;
-    FRD_CRD << buf << std::endl;
 
-    rmsk1=rmsk2=corecta=corectb=0.0;
+    npt.write_H1(tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour);
+    frd.write_H1(tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour);
+    npt.write_H2(st_name, st_num, st_sys, st_occ, st_tim);
+    frd.write_H2(st_name, st_num, st_sys, st_occ, st_tim);
+
+//    sprintf(buf,"H1 CRD 02 %04d %02d %02d %02d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour);
+//    NPT_CRD << buf << std::endl;
+//    FRD_CRD << buf << std::endl;
+//    sprintf(buf,"H2 %10s %04d %02d %02d %02d EUROLAS",st_name,st_num,st_sys,st_occ,st_tim);
+//    NPT_CRD << buf << std::endl;
+//    FRD_CRD << buf << std::endl;
+
     flag_cal=0;
     if(calBefore!=0) flag_cal++;
     if(calAfter!=0) flag_cal++;
@@ -2509,11 +2535,16 @@ void AOPConsoleWindow::prepareResults()
     tmp1.close();
 
     period=static_cast<double>(satelliteInfo.np_window);
+    npt.write_H3(satelliteInfo.name, satelliteInfo.id, satelliteInfo.sic, satelliteInfo.norad,
+                 satelliteInfo.transponder, satelliteInfo.i_flag, 1);
+    frd.write_H3(satelliteInfo.name, satelliteInfo.id, satelliteInfo.sic, satelliteInfo.norad,
+                 satelliteInfo.transponder, satelliteInfo.i_flag, 1);
+
     edc_npt << "99999" << std::endl;
-    sprintf(buf,"H3 %10s % 8lld %04d %08lld %1d %1d 1",satelliteInfo.name,satelliteInfo.id,satelliteInfo.sic,
-            satelliteInfo.norad,satelliteInfo.transponder,satelliteInfo.i_flag);
-    NPT_CRD << buf << std::endl;
-    FRD_CRD << buf << std::endl;
+//    sprintf(buf,"H3 %10s % 8lld %04d %08lld %1d %1d 1",satelliteInfo.name,satelliteInfo.id,satelliteInfo.sic,
+//            satelliteInfo.norad,satelliteInfo.transponder,satelliteInfo.i_flag);
+//    NPT_CRD << buf << std::endl;
+//    FRD_CRD << buf << std::endl;
 
     utility::mjd_dat(day,month,year,selectedObs.mjd);
     day_y = utility::day_year(day,month,year);
@@ -2567,14 +2598,19 @@ void AOPConsoleWindow::prepareResults()
         feu_volt = QInputDialog::getDouble(this, "", "Please, input FEU voltage", 0, -1e10, 1e10, 1);
     }
 
-    sprintf(buf,"H4 01 %4d %02d %02d %2.lf %2.lf %2.lf %04d %02d %02d %2.lf %2.lf %2.lf %02d %1d %1d %1d %1d %1d %1d %1d",
-             year_s,month_s,day_s,hour1,minut1,sec1,year_f,month_f,day_f,hour2,minut2,sec2,m_relis,
-             trop_corr,cmas_corr,ampl_corr,sys_del,hz,rang_typ,data_qv);
-    NPT_CRD << buf << std::endl;
-    sprintf(buf,"H4 00 %4d %02d %02d %2.lf %2.lf %2.lf %04d %02d %02d %2.lf %2.lf %2.lf %02d %1d %1d %1d %1d %1d %1d %1d",
-             year_s,month_s,day_s,hour1,minut1,sec1,year_f,month_f,day_f,hour2,minut2,sec2,m_relis,
-             trop_corr,cmas_corr,ampl_corr,sys_del,hz,rang_typ,data_qv);
-    FRD_CRD << buf << std::endl;
+    npt.write_H4(year_s,month_s,day_s,hour1,minut1,sec1,year_f,month_f,day_f,hour2,minut2,sec2,
+                 m_relis,trop_corr,cmas_corr,ampl_corr,sys_del,hz,rang_typ,data_qv);
+    frd.write_H4(year_s,month_s,day_s,hour1,minut1,sec1,year_f,month_f,day_f,hour2,minut2,sec2,
+                 m_relis,trop_corr,cmas_corr,ampl_corr,sys_del,hz,rang_typ,data_qv);
+
+//    sprintf(buf,"H4 01 %4d %02d %02d %2.lf %2.lf %2.lf %04d %02d %02d %2.lf %2.lf %2.lf %02d %1d %1d %1d %1d %1d %1d %1d",
+//             year_s,month_s,day_s,hour1,minut1,sec1,year_f,month_f,day_f,hour2,minut2,sec2,m_relis,
+//             trop_corr,cmas_corr,ampl_corr,sys_del,hz,rang_typ,data_qv);
+//    NPT_CRD << buf << std::endl;
+//    sprintf(buf,"H4 00 %4d %02d %02d %2.lf %2.lf %2.lf %04d %02d %02d %2.lf %2.lf %2.lf %02d %1d %1d %1d %1d %1d %1d %1d",
+//             year_s,month_s,day_s,hour1,minut1,sec1,year_f,month_f,day_f,hour2,minut2,sec2,m_relis,
+//             trop_corr,cmas_corr,ampl_corr,sys_del,hz,rang_typ,data_qv);
+//    FRD_CRD << buf << std::endl;
 
     sprintf(buf,"mjd=%lld  start=%lld   finish=%lld",selectedObs.mjd,mjd_s,mjd_f); tmp2 << buf << std::endl;
     sprintf(buf,"start day is %d  %d  %d",year_s,month_s,day_s);    tmp2 << buf << std::endl;
@@ -2582,28 +2618,37 @@ void AOPConsoleWindow::prepareResults()
     sprintf(buf,"finish day is %d  %d  %d",year_f,month_f,day_f);   tmp2 << buf << std::endl;
     sprintf(buf,"finish time %.lf  %.lf  %.lf",hour2,minut2,sec2);  tmp2 << buf << std::endl;
 
-
     strcpy(laser_type, "    Nd-Yag");
 
-    sprintf(buf,"C0 0 %10.3lf %4s %4s %4s %4s %4s",tr_wave,sys_conf,a_conf,b_conf,c_conf,d_conf);
-    NPT_CRD << buf << std::endl;
-    FRD_CRD << buf << std::endl;
-    sprintf(buf,"C1 0 %4s %10s %10.2lf %10.2lf %10.2lf %6.1lf %5.2lf %4d",a_conf,laser_type,p_wave,fire_rate,las_en,pulse_width,beam,N_pulse);
-    NPT_CRD << buf << std::endl;
-    FRD_CRD << buf << std::endl;
-    sprintf(buf,"C2 0 %4s %10s %10.3lf %6.2lf %5.1lf %5.1lf %10s %5.1lf %5.2lf %5.1lf %5.1lf %10s %6.1lf %6.1lf 1",b_conf,d_type,a_w,qv,feu_volt,d_c,o_type,o_p,s_f1,tr_s,s_f2,esp,det_amp_gain,det_amp_bw);
-    NPT_CRD << buf << std::endl;
-    FRD_CRD << buf << std::endl;
-    sprintf(buf,"C3 0 %4s %20s %20s %20s %20s %6.1lf",c_conf,t_source,f_sourse,timer,s_num,e_delay);
-    NPT_CRD << buf << std::endl;
-    FRD_CRD << buf << std::endl;
+    char empty[5] = {'\0'};
+
+    npt.write_C0(tr_wave,sys_conf,a_conf,b_conf,c_conf,d_conf,empty,empty,empty);
+    frd.write_C0(tr_wave,sys_conf,a_conf,b_conf,c_conf,d_conf,empty,empty,empty);
+    npt.write_C1(a_conf,laser_type,p_wave,fire_rate,las_en,pulse_width,beam,N_pulse);
+    frd.write_C1(a_conf,laser_type,p_wave,fire_rate,las_en,pulse_width,beam,N_pulse);
+    npt.write_C2(b_conf,d_type,a_w,qv,feu_volt,d_c,o_type,o_p,s_f1,tr_s,s_f2,esp,det_amp_gain,det_amp_bw,1);
+    frd.write_C2(b_conf,d_type,a_w,qv,feu_volt,d_c,o_type,o_p,s_f1,tr_s,s_f2,esp,det_amp_gain,det_amp_bw,1);
+    npt.write_C3(c_conf,t_source,f_sourse,timer,s_num,e_delay);
+    frd.write_C3(c_conf,t_source,f_sourse,timer,s_num,e_delay);
+
+//    sprintf(buf,"C0 0 %10.3lf %4s %4s %4s %4s %4s",tr_wave,sys_conf,a_conf,b_conf,c_conf,d_conf);
+//    NPT_CRD << buf << std::endl;
+//    FRD_CRD << buf << std::endl;
+//    sprintf(buf,"C1 0 %4s %10s %10.2lf %10.2lf %10.2lf %6.1lf %5.2lf %4d",a_conf,laser_type,p_wave,fire_rate,las_en,pulse_width,beam,N_pulse);
+//    NPT_CRD << buf << std::endl;
+//    FRD_CRD << buf << std::endl;
+//    sprintf(buf,"C2 0 %4s %10s %10.3lf %6.2lf %5.1lf %5.1lf %10s %5.1lf %5.2lf %5.1lf %5.1lf %10s %6.1lf %6.1lf 1",b_conf,d_type,a_w,qv,feu_volt,d_c,o_type,o_p,s_f1,tr_s,s_f2,esp,det_amp_gain,det_amp_bw);
+//    NPT_CRD << buf << std::endl;
+//    FRD_CRD << buf << std::endl;
+//    sprintf(buf,"C3 0 %4s %20s %20s %20s %20s %6.1lf",c_conf,t_source,f_sourse,timer,s_num,e_delay);
+//    NPT_CRD << buf << std::endl;
+//    FRD_CRD << buf << std::endl;
 
     cal_type=0;
     cal_type_ind=2;
     cal_shift_ind=0;
     det_canal=0;
     int cal_span = 3; // Combined (pre- and post-calibrations or multiple)
-    cal_shift=1;
     cal_peak1=selectedKal1.meanval*1000.0;
     cal_peak2=selectedKal2.meanval*1000.0;
 
@@ -2611,26 +2656,45 @@ void AOPConsoleWindow::prepareResults()
            ret_rate_41b= static_cast<double>(selectedKal1.nreturn)/selectedKal1.nflash * 100,
            ret_rate_41a= static_cast<double>(selectedKal2.nreturn)/selectedKal2.nflash * 100;
 
-    sprintf(buf,"40 %18.12lf %1d %4s %8d %8d %7.3lf %10.1lf %8.1lf %6.1lf %7.3lf %7.3lf %6.1lf %1d %1d %1d %1d %5.1lf",
-              static_cast<double>(selectedKal1.secday),cal_type,sys_conf,(selectedKal1.nflash+selectedKal2.nflash)/2,(selectedKal1.nreturn+selectedKal2.nreturn)/2,
-              (selectedKal1.target+selectedKal2.target)/2,(cal_peak1+cal_peak2)/2,shift*1000.0,rms_cal*1000.0,(selectedKal1.skew+selectedKal2.skew)/2,(selectedKal1.kurt+selectedKal2.kurt)/2,
-              0.0,cal_type_ind,cal_shift_ind,det_canal,cal_span, ret_rate_40);
-    NPT_CRD << buf << std::endl;
-    FRD_CRD << buf << std::endl;
+    npt.write_40(static_cast<double>(selectedKal1.secday),cal_type,sys_conf,(selectedKal1.nflash+selectedKal2.nflash)/2,(selectedKal1.nreturn+selectedKal2.nreturn)/2,
+                 (selectedKal1.target+selectedKal2.target)/2,(cal_peak1+cal_peak2)/2,shift*1000.0,rms_cal*1000.0,(selectedKal1.skew+selectedKal2.skew)/2,(selectedKal1.kurt+selectedKal2.kurt)/2,
+                 0.0,cal_type_ind,cal_shift_ind,det_canal,cal_span, ret_rate_40);
+    frd.write_40(static_cast<double>(selectedKal1.secday),cal_type,sys_conf,(selectedKal1.nflash+selectedKal2.nflash)/2,(selectedKal1.nreturn+selectedKal2.nreturn)/2,
+                 (selectedKal1.target+selectedKal2.target)/2,(cal_peak1+cal_peak2)/2,shift*1000.0,rms_cal*1000.0,(selectedKal1.skew+selectedKal2.skew)/2,(selectedKal1.kurt+selectedKal2.kurt)/2,
+                 0.0,cal_type_ind,cal_shift_ind,det_canal,cal_span, ret_rate_40);
+    npt.write_41(static_cast<double>(selectedKal1.secday),cal_type,sys_conf,selectedKal1.nflash,selectedKal1.nreturn,
+                 selectedKal1.target,cal_peak1,shift*1000.0,selectedKal1.rms*1000.0,selectedKal1.skew,selectedKal1.kurt,0.0,
+                 cal_type_ind,cal_shift_ind,det_canal,1,ret_rate_41b);
+    frd.write_41(static_cast<double>(selectedKal1.secday),cal_type,sys_conf,selectedKal1.nflash,selectedKal1.nreturn,
+                 selectedKal1.target,cal_peak1,shift*1000.0,selectedKal1.rms*1000.0,selectedKal1.skew,selectedKal1.kurt,0.0,
+                 cal_type_ind,cal_shift_ind,det_canal,1,ret_rate_41b);
+    npt.write_41(static_cast<double>(selectedKal2.secday),cal_type,sys_conf,selectedKal2.nflash,selectedKal2.nreturn,
+                 selectedKal2.target,cal_peak2,shift*1000.0,selectedKal2.rms*1000.0,selectedKal2.skew,selectedKal2.kurt,0.0,
+                 cal_type_ind,cal_shift_ind,det_canal,2,ret_rate_41a);
+    frd.write_41(static_cast<double>(selectedKal2.secday),cal_type,sys_conf,selectedKal2.nflash,selectedKal2.nreturn,
+                 selectedKal2.target,cal_peak2,shift*1000.0,selectedKal2.rms*1000.0,selectedKal2.skew,selectedKal2.kurt,0.0,
+                 cal_type_ind,cal_shift_ind,det_canal,2,ret_rate_41a);
 
-    sprintf(buf,"41 %18.12lf %1d %4s %8d %8d %7.3lf %10.1lf %8.1lf %6.1lf %7.3lf %7.3lf %6.1lf %1d %1d %1d %1d %5.1lf",
-              static_cast<double>(selectedKal1.secday),cal_type,sys_conf,selectedKal1.nflash,selectedKal1.nreturn,
-              selectedKal1.target,cal_peak1,shift*1000.0,selectedKal1.rms*1000.0,selectedKal1.skew,selectedKal1.kurt,0.0,
-              cal_type_ind,cal_shift_ind,det_canal,1,ret_rate_41b);
-    NPT_CRD << buf << std::endl;
-    FRD_CRD << buf << std::endl;
+//    sprintf(buf,"40 %18.12lf %1d %4s %8d %8d %7.3lf %10.1lf %8.1lf %6.1lf %7.3lf %7.3lf %6.1lf %1d %1d %1d %1d %5.1lf",
+//              static_cast<double>(selectedKal1.secday),cal_type,sys_conf,(selectedKal1.nflash+selectedKal2.nflash)/2,(selectedKal1.nreturn+selectedKal2.nreturn)/2,
+//              (selectedKal1.target+selectedKal2.target)/2,(cal_peak1+cal_peak2)/2,shift*1000.0,rms_cal*1000.0,(selectedKal1.skew+selectedKal2.skew)/2,(selectedKal1.kurt+selectedKal2.kurt)/2,
+//              0.0,cal_type_ind,cal_shift_ind,det_canal,cal_span, ret_rate_40);
+//    NPT_CRD << buf << std::endl;
+//    FRD_CRD << buf << std::endl;
 
-    sprintf(buf,"41 %18.12lf %1d %4s %8d %8d %7.3lf %10.1lf %8.1lf %6.1lf %7.3lf %7.3lf %6.1lf %1d %1d %1d %1d %5.1lf",
-              static_cast<double>(selectedKal2.secday),cal_type,sys_conf,selectedKal2.nflash,selectedKal2.nreturn,
-              selectedKal2.target,cal_peak2,shift*1000.0,selectedKal2.rms*1000.0,selectedKal2.skew,selectedKal2.kurt,0.0,
-              cal_type_ind,cal_shift_ind,det_canal,2,ret_rate_41a);
-    NPT_CRD << buf << std::endl;
-    FRD_CRD << buf << std::endl;
+//    sprintf(buf,"41 %18.12lf %1d %4s %8d %8d %7.3lf %10.1lf %8.1lf %6.1lf %7.3lf %7.3lf %6.1lf %1d %1d %1d %1d %5.1lf",
+//              static_cast<double>(selectedKal1.secday),cal_type,sys_conf,selectedKal1.nflash,selectedKal1.nreturn,
+//              selectedKal1.target,cal_peak1,shift*1000.0,selectedKal1.rms*1000.0,selectedKal1.skew,selectedKal1.kurt,0.0,
+//              cal_type_ind,cal_shift_ind,det_canal,1,ret_rate_41b);
+//    NPT_CRD << buf << std::endl;
+//    FRD_CRD << buf << std::endl;
+
+//    sprintf(buf,"41 %18.12lf %1d %4s %8d %8d %7.3lf %10.1lf %8.1lf %6.1lf %7.3lf %7.3lf %6.1lf %1d %1d %1d %1d %5.1lf",
+//              static_cast<double>(selectedKal2.secday),cal_type,sys_conf,selectedKal2.nflash,selectedKal2.nreturn,
+//              selectedKal2.target,cal_peak2,shift*1000.0,selectedKal2.rms*1000.0,selectedKal2.skew,selectedKal2.kurt,0.0,
+//              cal_type_ind,cal_shift_ind,det_canal,2,ret_rate_41a);
+//    NPT_CRD << buf << std::endl;
+//    FRD_CRD << buf << std::endl;
 
 
 //    if(flag_cal!=0) {
@@ -2643,11 +2707,15 @@ void AOPConsoleWindow::prepareResults()
 //    }
 
     tim1 = sKobs.data[0].sec;
-    sprintf(buf,"20 %18.12lf %7.2lf %6.2lf %4d 1", tim1, selectedObs.pres,selectedObs.temp,selectedObs.humid);
-    NPT_CRD << buf << std::endl;
-    FRD_CRD << buf << std::endl;
-    sprintf(buf,"10 %18.12lf %18.12lf %4s 2 2 0 0 %5d na", tim1, sKobs.data[0].range/1000000000.0, sys_conf, sKobs.data[0].ampl);
-    FRD_CRD << buf << std::endl;
+    npt.write_20(tim1, selectedObs.pres,selectedObs.temp,selectedObs.humid, 1);
+    frd.write_20(tim1, selectedObs.pres,selectedObs.temp,selectedObs.humid, 1);
+    frd.write_10(tim1, sKobs.data[0].range/1000000000.0, sys_conf, 2, 2, 0, 0, sKobs.data[0].ampl, -1);
+
+//    sprintf(buf,"20 %18.12lf %7.2lf %6.2lf %4d 1", tim1, selectedObs.pres,selectedObs.temp,selectedObs.humid);
+//    NPT_CRD << buf << std::endl;
+//    FRD_CRD << buf << std::endl;
+//    sprintf(buf,"10 %18.12lf %18.12lf %4s 2 2 0 0 %5d na", tim1, sKobs.data[0].range/1000000000.0, sys_conf, sKobs.data[0].ampl);
+//    FRD_CRD << buf << std::endl;
 
     vx1=static_cast<int>(tim1/period);
     l=1;
@@ -2662,8 +2730,7 @@ void AOPConsoleWindow::prepareResults()
             vx = -1;
         else {
             vx = static_cast<int>(sKobs.data[j].sec/period);
-            sprintf(buf,"10 %18.12lf %18.12lf %4s 2 2 0 0 %5d na", sKobs.data[j].sec, sKobs.data[j].range/1000000000.0, sys_conf, sKobs.data[j].ampl);
-            FRD_CRD << buf << std::endl;
+            frd.write_10(sKobs.data[j].sec, sKobs.data[j].range/1000000000.0, sys_conf, 2, 2, 0, 0, sKobs.data[0].ampl, -1);
         }
         if (sKobs.data[j].sec <= end_time && vx==vx1) {
             ++l;
@@ -2719,16 +2786,17 @@ void AOPConsoleWindow::prepareResults()
             sprintf(ss,"%012.0lf%012.0lf%07.0lf%05.0lf%04.0lf%03d%04d00000",
             mean_time*1.e7,mean_range*1000.,v_mean*1000.,selectedObs.pres*10.,selectedObs.temp*10.,selectedObs.humid,l);
             check_sum=0;
-            sprintf(buf,"11 %18.12lf %18.12lf %4s 2 %6.1lf %6d %9.1lf %7.3lf %7.3lf %9.1lf %5.1lf 0 na",
-                     mean_time,mean_range/1000000000.0,sys_conf,static_cast<double>(satelliteInfo.np_window),l,v_mean*1000.0,cSkew,cKurt,v_mean*500.0,
-                    static_cast<double>(l*10/satelliteInfo.np_window));
-            NPT_CRD << buf << std::endl;
+
+            npt.write_11(mean_time,mean_range/1000000000.0,sys_conf,2,static_cast<double>(satelliteInfo.np_window),l,v_mean*1000.0,
+                         cSkew,cKurt,v_mean*500.0,static_cast<double>(l*10/satelliteInfo.np_window), 0, -1);
+
+//            sprintf(buf,"11 %18.12lf %18.12lf %4s 2 %6.1lf %6d %9.1lf %7.3lf %7.3lf %9.1lf %5.1lf 0 na",
+//                     mean_time,mean_range/1000000000.0,sys_conf,static_cast<double>(satelliteInfo.np_window),l,v_mean*1000.0,cSkew,cKurt,v_mean*500.0,
+//                    static_cast<double>(l*10/satelliteInfo.np_window));
+//            NPT_CRD << buf << std::endl;
 
             numer++;
-            timm[numer]=mean_time;
             ran[numer]=mean_range;
-            rmes[numer]=vv_mean;
-            rmss[numer]=v_mean;
             num[numer]=l;
             summa+=vv_mean;
             for(jj=0;jj<=51;jj++) {
@@ -2780,17 +2848,21 @@ void AOPConsoleWindow::prepareResults()
     info("RMS=" + QString::number(selectedObs.RMS, 'f', 3) + ",  mean_peak=" + QString::number(mean_peak, 'f', 3));
     if(mean_peak>9999.9) mean_peak=0.0;
 
-    sprintf(buf,"50 %4s %6.1lf %7.3lf %7.3lf %6.1lf 1",sys_conf,selectedObs.RMS*1000,cSkew,cKurt,mean_peak);
-    NPT_CRD << buf << std::endl;
-    sprintf(buf,"H8");
-    NPT_CRD << buf << std::endl;
-    FRD_CRD << buf << std::endl;
+    npt.write_50(sys_conf,selectedObs.RMS*1000,cSkew,cKurt,mean_peak,1);
+    npt.write_H8();
+    frd.write_H8();
+    npt.write_H9();
+    frd.write_H9();
 
-    sprintf(buf,"H9");
-    NPT_CRD << buf << std::endl;
-    FRD_CRD << buf << std::endl;
+    //    sprintf(buf,"50 %4s %6.1lf %7.3lf %7.3lf %6.1lf 1",sys_conf,selectedObs.RMS*1000,cSkew,cKurt,mean_peak);
+    //    NPT_CRD << buf << std::endl;
+    //    sprintf(buf,"H8");
+    //    NPT_CRD << buf << std::endl;
+    //    FRD_CRD << buf << std::endl;
 
-
+    //    sprintf(buf,"H9");
+    //    NPT_CRD << buf << std::endl;
+    //    FRD_CRD << buf << std::endl;
 
 
     QFile nptf(fnameNPT), frdf(fnameFRD);
