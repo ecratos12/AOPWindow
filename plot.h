@@ -21,7 +21,7 @@ public:
 public slots:
     void clear();
     void autoFilter(const QVector<double> &et, const QVector<double> &er,
-                    int bandLength, double bandWidth, double snr, double sigmaRate);
+                    const int& CARRIER_MIN_PTS, const double& CARRIER_MIN_TIME, double bandWidth, double sigmaRate);
     void setTitles(QString h1, QString h2);
     void setEfemeris(const QVector<double> &et, const QVector<double> &er);
 

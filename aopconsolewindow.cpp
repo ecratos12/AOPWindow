@@ -40,6 +40,8 @@ CustomSlider::CustomSlider(Qt::Orientation o, double unit, QString name, QWidget
     title->setFont(QFont("Courier New", 10, QFont::Bold));
     connect(slider, &QSlider::valueChanged, this, [&](int value){
         curVal->setText(QString::number(value*_unit, 'f', 2));
+        curVal->setFont(QFont("Courier New", 10, QFont::Bold));
+        curVal->setStyleSheet("QLabel {background-color : yellow; color : black; }");
     });
 
     grid = new QGridLayout(this);
@@ -526,7 +528,7 @@ void AOPConsoleWindow::setup3()
             defe_r[i] = sEfem.data[i].range*1000;
             if (defe_t[i] < defe_t[0]) defe_t[i]+=86400.;
         }
-        omc_plot->autoFilter(defe_t,defe_r, bandLengthVal->value(), bandWidthVal->value(), snrVal->value(), sigmaVal->value());
+        omc_plot->autoFilter(defe_t,defe_r, minBandPtsVal->value(), minBandTimeVal->value(), bandWidthVal->value(), sigmaVal->value());
         omc_plot->setFocus();
     });
     connect(applyTRB_pBtn, &QPushButton::clicked, this, [&](){
@@ -539,20 +541,20 @@ void AOPConsoleWindow::setup3()
     });
 
     // sliders for autofilter parameters
-    bandLengthVal = new CustomSlider(Qt::Horizontal, 1, "Band Length (points)",  this);
-    bandLengthVal->slider->setTickInterval(1);
-    bandLengthVal->setRange(5, 50);
-    bandLengthVal->slider->setValue(10);
+    minBandPtsVal = new CustomSlider(Qt::Horizontal, 1, "Minimum Band Length (points)",  this);
+    minBandPtsVal->slider->setTickInterval(1);
+    minBandPtsVal->setRange(5, 50);
+    minBandPtsVal->slider->setValue(10);
 
     bandWidthVal = new CustomSlider(Qt::Horizontal, 1e-2, "Band Width (m)", this);
     bandWidthVal->slider->setTickInterval(1);
     bandWidthVal->setRange(10, 100); // in cm
     bandWidthVal->slider->setValue(25);
 
-    snrVal = new CustomSlider(Qt::Horizontal, 1e-2, "SNR", this);
-    snrVal->slider->setTickInterval(1);
-    snrVal->setRange(5, 200); // in persents
-    snrVal->slider->setValue(50);
+    minBandTimeVal = new CustomSlider(Qt::Horizontal, 1, "Minimum Band Time Span (sec)", this);
+    minBandTimeVal->slider->setTickInterval(1);
+    minBandTimeVal->setRange(5, 200); // in seconds
+    minBandTimeVal->slider->setValue(60);
 
     sigmaVal = new CustomSlider(Qt::Horizontal, 1e-1, "Sigma Threshold", this);
     sigmaVal->slider->setTickInterval(1);
@@ -561,10 +563,10 @@ void AOPConsoleWindow::setup3()
 
     grid3->addWidget(new CustomTitle("Observation fitting, OMC plotting and filtering"), 0, 1, 1, 6);
     grid3->addWidget(reset3Btn, 1, 0, 6, 1);
-    grid3->addWidget(bandLengthVal, 1, 1);
+    grid3->addWidget(minBandPtsVal, 1, 1);
     grid3->addWidget(bandWidthVal, 1, 2);
     grid3->addWidget(filtBtn, 1, 3);
-    grid3->addWidget(snrVal, 1, 4);
+    grid3->addWidget(minBandTimeVal, 1, 4);
     grid3->addWidget(sigmaVal, 1, 5);
     grid3->addWidget(omc_plot, 2, 1, 5, 5);
     QVBoxLayout *vbl = new QVBoxLayout(this);

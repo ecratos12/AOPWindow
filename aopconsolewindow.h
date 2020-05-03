@@ -86,7 +86,7 @@ private:
     Plot *omc_plot;
     QCustomPlot *nql_plot;
     QPushButton *esc_pBtn, *undo_pBtn, *up_pBtn, *down_pBtn, *filtBtn, *recalcTRB_pBtn, *applyTRB_pBtn, *saveexit_pBtn;
-    CustomSlider *bandLengthVal, *bandWidthVal, *snrVal, *sigmaVal;
+    CustomSlider *minBandPtsVal, *bandWidthVal, *minBandTimeVal, *sigmaVal;
 
     // settings
     SettingsDialog *sd;
