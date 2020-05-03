@@ -1,3 +1,5 @@
+#include <limits>
+
 #include "plot.h"
 #include <QPainter>
 #include "utility.h"
@@ -335,6 +337,7 @@ void Plot::autoFilter(const QVector<double> &et, const QVector<double> &er,
     // variables for algo
     int i,segmentFinishPos,currCarrierPts,countSkipped;
     double k,b,yBot,yTop,y,x0;
+    double kopt,bopt,csmax;
     bool useFan = true;
     QVector<QCPGraphData> carriers(oldData.size()); // points that define a sliding band
 
@@ -363,10 +366,11 @@ void Plot::autoFilter(const QVector<double> &et, const QVector<double> &er,
     for (int pos=0; pos<oldData.size(); ++pos) {
 
         if (useFan) { // perform scanning for new carrier points
+            csmax = 0;
 
             x0 = oldData.at(pos)->key; // current position (time)
             for (b = minR; b < maxR+1e-10; b += bandWidth/2) {
-                for (k = -maxAcc; k < maxAcc+1e-10; k+= maxAcc/500) {
+                for (k = -maxAcc; k < maxAcc+1e-10; k+= maxAcc/200) {
 
                     currCarrierPts = 0;
                     i = 0;
@@ -381,39 +385,41 @@ void Plot::autoFilter(const QVector<double> &et, const QVector<double> &er,
                             ++currCarrierPts;
                         ++i;
                     }
-                    if (currCarrierPts >= CARRIER_MIN_PTS) { // once at least CARRIER_MIN_PTS points are found inside band, consider them as signal and save them
-                        currCarrierPts = 0;
-                        i = 0;
-                        while (currCarrierPts < CARRIER_MIN_PTS || (oldData.at(pos+i)->key - x0) < CARRIER_MIN_TIME) {
-                            if (pos+i >= oldData.size()) break;
-                            if ((oldData.at(pos+i)->key - x0) > 2*CARRIER_MIN_TIME) break;
-                            yBot = k*(oldData.at(pos+i)->key - x0) + b - bandWidth/2;
-                            yTop = yBot + bandWidth;
-                            y = oldData.at(pos+i)->value;
-                            if (y > yBot && y < yTop) {
-                                graph()->addData(oldData.at(pos+i)->key, y);
-                                isPointDropped[ pdropIndexes[pos+i] ] = false;
-                                segmentFinishPos = pos+i;
-
-                                carriers[currCarrierPts++] = *(oldData.at(pos+i));
-//                                if (inPoints==CARRIER_SIZE_PTS) break;
-                            }
-                            ++i;
+                    if (currCarrierPts >= CARRIER_MIN_PTS)
+                        if (currCarrierPts > csmax) {
+                            csmax = currCarrierPts;
+                            kopt = k;
+                            bopt = b;
                         }
-                        useFan = false;
-                        pos = segmentFinishPos+1;
-                        countSkipped = 0;
-
-                        // graph #1 and #2 used to illustrate sliding band
-                        graph(1)->addData(x0, b - bandWidth/2);
-                        graph(1)->addData(oldData.at(segmentFinishPos)->key, k*(oldData.at(segmentFinishPos)->key - x0) + b - bandWidth/2);
-                        graph(2)->addData(x0, b + bandWidth/2);
-                        graph(2)->addData(oldData.at(segmentFinishPos)->key, k*(oldData.at(segmentFinishPos)->key - x0) + b + bandWidth/2);
-
-                        break;
-                    }
                 }
-                if (!useFan) break; // after first CARRIER_SIZE signal points were found, stop scanning -- start to propagate instead
+            }
+
+            if (csmax != 0) {
+                currCarrierPts = 0;
+                i = 0;
+                while (currCarrierPts < CARRIER_MIN_PTS || (oldData.at(pos+i)->key - x0) < CARRIER_MIN_TIME) {
+                    if (pos+i >= oldData.size()) break;
+                    if ((oldData.at(pos+i)->key - x0) > 2*CARRIER_MIN_TIME) break;
+                    yBot = kopt*(oldData.at(pos+i)->key - x0) + bopt - bandWidth/2;
+                    yTop = yBot + bandWidth;
+                    y = oldData.at(pos+i)->value;
+                    if (y > yBot && y < yTop) {
+                        graph()->addData(oldData.at(pos+i)->key, y);
+                        isPointDropped[ pdropIndexes[pos+i] ] = false;
+                        segmentFinishPos = pos+i;
+
+                        carriers[currCarrierPts++] = *(oldData.at(pos+i));
+                    }
+                    ++i;
+                }
+                useFan = false;
+                pos = segmentFinishPos+1;
+                countSkipped = 0;
+
+                graph(1)->addData(x0, bopt - bandWidth/2);
+                graph(1)->addData(oldData.at(segmentFinishPos)->key, kopt*(oldData.at(segmentFinishPos)->key - x0) + bopt - bandWidth/2);
+                graph(2)->addData(x0, bopt + bandWidth/2);
+                graph(2)->addData(oldData.at(segmentFinishPos)->key, kopt*(oldData.at(segmentFinishPos)->key - x0) + bopt + bandWidth/2);
             }
             if (pos >= oldData.size()) break;
         }
