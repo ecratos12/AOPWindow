@@ -47,4 +47,3 @@ HEADERS += \
 
 DISTFILES +=
 
-INCLUDEPATH += $$PWD\curl-7.69.0-win32-mingw\include

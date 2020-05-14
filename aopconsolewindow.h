@@ -75,7 +75,6 @@ private:
 
     QPushButton *calBeforeBtn, *calAfterBtn;
     QComboBox *calBeforeBox, *calAfterBox;
-    QPushButton *send;
 
     QTextEdit *polyTable;
     QTextEdit *npt_content, *frd_content;
@@ -93,14 +92,15 @@ private:
 
     // misc
     int numberCalSelected;
+    double cSkew, cKurt;
 
+    // sending via FTP
     QString fnameNPT, fnameFRD;
+    QPushButton *send;
     int uploadsFinishedCount, totalUploads;
     std::vector<QNetworkReply*> reps1, reps2;
     QNetworkReply *rep1, *rep2;
     QString replyMsgs;
-
-    double cSkew, cKurt;
 
     // data
     int nrObs, calBefore, calAfter, calSelected; // enumeration from 1, as rows in files

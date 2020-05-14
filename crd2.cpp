@@ -1,24 +1,25 @@
 #include <crd2.h>
 #include <string.h>
 
-CRD_FILE::CRD_FILE(std::string fname)
+CRD_FILE::CRD_FILE(DataType dt, std::string fname) : type(dt)
 {
     file.open(fname);
 }
 
-CRD_FILE::CRD_FILE(char *st_name, char *sat_nam, int yyyy, int mm, int dd, double hh, int version)
+CRD_FILE::CRD_FILE(DataType dt, char st_name[], char sat_nam[], int yyyy, int mm, int dd, double hh, int version) : type(dt)
 {
     char fname[256];
-    sprintf(fname,"D:\\LASER-2\\DATA\\SEND\\%4s_%1.10s_crd_%04d%02d%02d_%02.lf_%02d.npt",
+    sprintf(fname,"D:\\LASER-2\\DATA\\SEND\\%4s_%1.10s_crd_%04d%02d%02d_%02.lf_%02d",
             st_name, sat_nam, yyyy, mm, dd, hh, version);
+    if (type == DataType::FullRate) strncat(fname, ".frd", 4);
+    if (type == DataType::NormalPoint) strncat(fname, ".npt", 4);
     file.open(fname);
 }
 
-NPT_FILE::NPT_FILE(std::string fname) : CRD_FILE(fname) {}
-NPT_FILE::NPT_FILE(char *st_name, char *sat_nam, int yyyy, int mm, int dd, double hh, int version) : CRD_FILE(st_name,sat_nam,yyyy,mm,dd,hh,version) {}
-
-FRD_FILE::FRD_FILE(std::string fname) : CRD_FILE(fname) {}
-FRD_FILE::FRD_FILE(char *st_name, char *sat_nam, int yyyy, int mm, int dd, double hh, int version) : CRD_FILE(st_name,sat_nam,yyyy,mm,dd,hh,version) {}
+std::string CRD_FILE::getAsString()
+{
+    return content;
+}
 
 /*!
  * \brief Write to CRD file Format header H1
@@ -96,42 +97,14 @@ void CRD_FILE::write_H3(char *sat_nam, int64_t sat_id, int sic, int64_t norad, i
  * \param range_type Range type indicator
  * \param data_qlty Data quality alert indicator
  */
-void NPT_FILE::write_H4(int year1, int month1, int day1, int hour1, int min1, int sec1, int year2, int month2, int day2, int hour2, int min2, int sec2, int release, int trop_cor, int com_cor, int ampl_cor, int sys_del_station, int sys_del_spacecr, int range_type, int data_qlty)
+void CRD_FILE::write_H4(int year1, int month1, int day1, int hour1, int min1, int sec1, int year2, int month2, int day2, int hour2, int min2, int sec2, int release, int trop_cor, int com_cor, int ampl_cor, int sys_del_station, int sys_del_spacecr, int range_type, int data_qlty)
 {
-    sprintf(buf, "H4 1 %4d %2d %2d %2d %2d %2d %4d %2d %2d %2d %2d %2d %2d %1d %1d %1d %1d %1d %1d %1d\n",
-            year1,month1,day1,hour1,min1,sec1,year2,month2,day2,hour2,min2,sec2,
-            release,trop_cor,com_cor,ampl_cor,sys_del_station,sys_del_spacecr,range_type,data_qlty);
-    file << buf;
-    content.append(buf,strlen(buf));
-}
+    int dt;
+    if (type == DataType::FullRate) dt = 0;
+    if (type == DataType::NormalPoint) dt = 1;
 
-/*!
- * \brief Write to FRD file Session (Pass/Pass segment) Header H4
- * \param year1 Starting Year
- * \param month1 Starting Month
- * \param day1 Starting Day
- * \param hour1 Starting Hour (UTC)
- * \param min1 Starting Minute (UTC)
- * \param sec1 Starting Second (UTC)
- * \param year2 Ending Year
- * \param month2 Ending Month
- * \param day2 Ending Day
- * \param hour2 Ending Hour (UTC)
- * \param min2 Ending Minute (UTC)
- * \param sec2 Ending Second (UTC)
- * \param release A flag to indicate the data release
- * \param trop_cor Tropospheric refraction correction applied indicator
- * \param com_cor Center of mass correction applied indicator
- * \param ampl_cor Receive amplitude correction applied indicator
- * \param sys_del_station Station system delay applied indicator
- * \param sys_del_spacecr Spacecraft system delay applied (transponders) indicator
- * \param range_type Range type indicator
- * \param data_qlty Data quality alert indicator
- */
-void FRD_FILE::write_H4(int year1, int month1, int day1, int hour1, int min1, int sec1, int year2, int month2, int day2, int hour2, int min2, int sec2, int release, int trop_cor, int com_cor, int ampl_cor, int sys_del_station, int sys_del_spacecr, int range_type, int data_qlty)
-{
-    sprintf(buf, "H4 0 %4d %2d %2d %2d %2d %2d %4d %2d %2d %2d %2d %2d %2d %1d %1d %1d %1d %1d %1d %1d\n",
-            year1,month1,day1,hour1,min1,sec1,year2,month2,day2,hour2,min2,sec2,
+    sprintf(buf, "H4 %1d %4d %2d %2d %2d %2d %2d %4d %2d %2d %2d %2d %2d %2d %1d %1d %1d %1d %1d %1d %1d\n",
+            dt,year1,month1,day1,hour1,min1,sec1,year2,month2,day2,hour2,min2,sec2,
             release,trop_cor,com_cor,ampl_cor,sys_del_station,sys_del_spacecr,range_type,data_qlty);
     file << buf;
     content.append(buf,strlen(buf));

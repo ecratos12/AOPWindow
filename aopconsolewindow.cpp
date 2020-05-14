@@ -16,8 +16,6 @@ const double C_VEL = 299792458.0;
 #include <QStringList>
 #include <QAuthenticator>
 
-#include <curl/curl.h>
-
 CatTableItem::CatTableItem(const QString &text, int type) : QTableWidgetItem(text, type)
 {
     setFlags(Qt::ItemIsSelectable | Qt::ItemIsUserCheckable | Qt::ItemIsEnabled);
@@ -544,7 +542,7 @@ void AOPConsoleWindow::setup3()
     minBandPtsVal = new CustomSlider(Qt::Horizontal, 1, "Minimum Band Length (points)",  this);
     minBandPtsVal->slider->setTickInterval(1);
     minBandPtsVal->setRange(5, 50);
-    minBandPtsVal->slider->setValue(10);
+    minBandPtsVal->slider->setValue(7);
 
     bandWidthVal = new CustomSlider(Qt::Horizontal, 1e-2, "Band Width (m)", this);
     bandWidthVal->slider->setTickInterval(1);
@@ -908,6 +906,10 @@ void AOPConsoleWindow::updateCatCalTable(std::vector<datamodels::CalCatElem>& ca
     table->showGrid();
     bool showAllCals = !(Config::Instance()->doFilterCalView());
     int r = 0;
+
+    // re-create drop list
+    calBeforeBox->clear();
+    calAfterBox->clear();
 
     for (size_t i = 0; i < cat.size(); ++i) {
         int64_t startObs = 86400*UniqueKAT_OBS::Instance()->cat[nrObs-1].mjd + UniqueKAT_OBS::Instance()->cat[nrObs-1].secday;
@@ -2198,7 +2200,7 @@ void AOPConsoleWindow::plot_NP()
     ss  = static_cast<int>(selectedObs.secday % 3600LL % 60LL);
     sprintf(header1,"ST:%-4s SAT: %-5s %4d-%02d-%02d%4d:%02d:%02d %4d POINTS",
             NAMSTAC,satelliteInfo.name,yy,mth,dd,hh,min,ss,selectedObs.npoint);
-    sprintf(header2,"TBIAS:%6.1lfMS RBIAS:%6.3lfM STEP :%2d RMS:%5.2lf",
+    sprintf(header2,"TBIAS:%6.1lfMS RBIAS:%6.3lfM STEP :%2d RMS:%5.2lf CM",
         selectedObs.TB,selectedObs.RB,selectedObs.POLY,selectedObs.RMS*15.);
 
     QVector<double> X(selectedObs.npoint), Y(selectedObs.npoint); // plot data
@@ -2474,8 +2476,8 @@ void AOPConsoleWindow::prepareResults()
     fnameNPT = QString(name1);
     fnameFRD = QString(name2);
 
-    NPT_FILE npt(fnameNPT.toStdString());
-    FRD_FILE frd(fnameFRD.toStdString());
+    CRD_FILE npt(DataType::NormalPoint, fnameNPT.toStdString());
+    CRD_FILE frd(DataType::FullRate, fnameFRD.toStdString());
 
 //    std::ofstream NPT_CRD(name1);
 //    if (!NPT_CRD.is_open()) {
@@ -2790,7 +2792,7 @@ void AOPConsoleWindow::prepareResults()
             check_sum=0;
 
             npt.write_11(mean_time,mean_range/1000000000.0,sys_conf,2,static_cast<double>(satelliteInfo.np_window),l,v_mean*1000.0,
-                         cSkew,cKurt,v_mean*500.0,static_cast<double>(l*10/satelliteInfo.np_window), 0, -1);
+                         cSkew,cKurt,v_mean*500.0,l*fire_rate/satelliteInfo.np_window, 0, -1);
 
 //            sprintf(buf,"11 %18.12lf %18.12lf %4s 2 %6.1lf %6d %9.1lf %7.3lf %7.3lf %9.1lf %5.1lf 0 na",
 //                     mean_time,mean_range/1000000000.0,sys_conf,static_cast<double>(satelliteInfo.np_window),l,v_mean*1000.0,cSkew,cKurt,v_mean*500.0,

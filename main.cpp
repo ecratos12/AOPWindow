@@ -40,7 +40,7 @@ int copy_obs(int nr)
         obs_catalogue_copy << temp_line << std::endl;
         n++;
         if (n == nr) {
-            if (sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
+            if (sscanf(temp_line.c_str(), datamodels::FormatKAT_OBS_R,
                         &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe,
                         &npoint, &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor)!=18) {
                 std::cout << std::endl << "ERROR in reading OBS catalogue in copy_obs, line # " << n+1 << std::endl;
@@ -72,7 +72,7 @@ int copy_obs(int nr)
                 return 5;
             }
             std::getline(obs, temp_line);
-            if ((sscanf(temp_line.c_str(), utility::FormatOGA_R, &sec, &azym, &elev, &range, &ampl))!=5)	{
+            if ((sscanf(temp_line.c_str(), datamodels::FormatOGA_R, &sec, &azym, &elev, &range, &ampl))!=5)	{
                 obs_catalogue_copy.close();
                 obs_copy.close();
                 std::cout << "Error reading observation file " << nam << std::endl;
@@ -81,14 +81,14 @@ int copy_obs(int nr)
                 return 5;
             }
             char buf[128];
-            sprintf(buf, utility::FormatCGA_W, sec, azym, elev, range, range*0.5e-12*c_velosity, ampl);
+            sprintf(buf, datamodels::FormatCGA_W, sec, azym, elev, range, range*0.5e-12*c_velosity, ampl);
             obs_copy << buf << std::endl;
 
             secobs = static_cast<int64_t>(sec);
             j9 = 1;
             for (jj = 2; jj <= npoint; jj++) {
                 if (!std::getline(obs, temp_line)) break;
-                if ((sscanf(temp_line.c_str(), utility::FormatOGA_R, &sec1, &azym, &elev, &range, &ampl))!=5) {
+                if ((sscanf(temp_line.c_str(), datamodels::FormatOGA_R, &sec1, &azym, &elev, &range, &ampl))!=5) {
                     obs_catalogue_copy.close();
                     obs_copy.close();
                     std::cout << "Error reading observation file " << nam << std::endl;
@@ -98,7 +98,7 @@ int copy_obs(int nr)
                 }
                 if(sec1 > sec) {
                     j9++;
-                    sprintf(buf, utility::FormatCGA_W, sec1, azym, elev, range, range*0.5e-12*c_velosity, ampl);
+                    sprintf(buf, datamodels::FormatCGA_W, sec1, azym, elev, range, range*0.5e-12*c_velosity, ampl);
                     obs_copy << buf << std::endl;
                 }
                 sec = sec1;
@@ -112,7 +112,7 @@ int copy_obs(int nr)
             ws1 = 1;
             npoint = j9;
             if (secobs < secday) mjd += 1;
-            sprintf(buf, utility::FormatKAT_OBS_W, ws, ws1, mjd, secobs, nsat, nsta, kodst, namefe,
+            sprintf(buf, datamodels::FormatKAT_OBS_W, ws, ws1, mjd, secobs, nsat, nsta, kodst, namefe,
                     npoint, temp, pres, humid, TB, RB, RMS, POLY, clock_cor);
             obs_catalogue_copy << buf << std::endl; // ????????
         }
@@ -151,7 +151,7 @@ int cota_obs(int nr)
     jj = 0;
     std::string temp_line;
     while (std::getline(obs_catalogue, temp_line)) {
-        sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
+        sscanf(temp_line.c_str(), datamodels::FormatKAT_OBS_R,
                                    &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe, &npoint,
                                    &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor);
         n++;
@@ -198,10 +198,10 @@ int cota_obs(int nr)
     }
     for (jj = 1; jj <= npoint; jj++) {
         std::getline(obs_copy, temp_line);
-        sscanf(temp_line.c_str(), utility::FormatCGA_R, &sec, &azym, &elev, &range1, &range, &ampl);
+        sscanf(temp_line.c_str(), datamodels::FormatCGA_R, &sec, &azym, &elev, &range1, &range, &ampl);
         sec += (rrr1-clock_cor)*1.e-6;
         char buf[128];
-        sprintf(buf, utility::FormatCGA_W, sec, azym, elev, range1, range, ampl);
+        sprintf(buf, datamodels::FormatCGA_W, sec, azym, elev, range1, range, ampl);
         copy << buf << std::endl;
     }
     copy.close();
@@ -222,7 +222,7 @@ int cota_obs(int nr)
     while (std::getline(obs_catalogue, temp_line)) {
         n++;
         if (n == nr) {
-            if (sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
+            if (sscanf(temp_line.c_str(), datamodels::FormatKAT_OBS_R,
                         &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe,
                         &npoint, &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor)!=18) {
                 std::cout << "\nERROR reading observations catalogue in cota_obs: line # " << n << std::endl;
@@ -234,7 +234,7 @@ int cota_obs(int nr)
             }
             clock_cor = rrr1;
             char buf[256];
-            sprintf(buf, utility::FormatKAT_OBS_W,
+            sprintf(buf, datamodels::FormatKAT_OBS_W,
                         ws, ws1, mjd, secday, nsat, nsta, kodst, namefe, npoint, temp, pres, humid, TB,
                         RB, RMS, POLY, clock_cor);
             obs_catalogue_copy << buf << std::endl;
@@ -288,7 +288,7 @@ int list_cal(int nr1, int nr2)
                 cal_catalogue.close();
                 return 1;
             }
-            if (sscanf(temp_line.c_str(), utility::FormatKAT_KAL_R,
+            if (sscanf(temp_line.c_str(), datamodels::FormatKAT_KAL_R,
                        &c,&nsta,kodst,nam,&mjd,&secday,&filtr,&meanval,&rms,&corect,&temp,&baro,&humid,
                        &nflash, &nreturn,&weather,&numberpas,&coef,&skew,&kurt,&target,namcal) != 22) {
                 std::cout << "ERROR in reading calibrations catalogue, line # " << n+1 << std::endl;
@@ -364,7 +364,7 @@ int list_obs(int nr1,int nr2)
                     if(c != 0x0d)	break;
                     std::cout << std::endl << " NR  WS  STATION      SAT    DATA     TIME BEGIN.    QUANT. Ind " << std::endl;
                 }
-                if (sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
+                if (sscanf(temp_line.c_str(), datamodels::FormatKAT_OBS_R,
                            &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe, &npoint,
                            &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor) != 18) {
                     printf("%d %c %d %d %lld %lld %lld %d %2s %8s %d %lf %lf %d %lf %lf %lf %d %lf",
@@ -473,7 +473,7 @@ int fit_cal(int nr)
     if (sys_conf.is_open()) {
         std::string temp_line;
         std::getline(sys_conf, temp_line);
-        sscanf(temp_line.c_str(), utility::FormatSYS_CONF_R, &l, &_, &_, &_, &_, &_);
+        sscanf(temp_line.c_str(), datamodels::FormatSYS_CONF_R, &l, &_, &_, &_, &_, &_);
         sys_conf.close();
     } else {
         std::cout << "Unable to open configuration description file!" << std::endl;
@@ -495,7 +495,7 @@ int fit_cal(int nr)
 
         std::string temp_line;
         while (std::getline(cal_catalogue, temp_line)) {
-            if (sscanf(temp_line.c_str(), utility::FormatKAT_KAL_R,
+            if (sscanf(temp_line.c_str(), datamodels::FormatKAT_KAL_R,
                        &c,&nsta,kodst,nam,&mjd,&secday,&filtr,&meanval,&rms,&corect,&temp,&baro,&humid,
                        &nflash, &nreturn,&weather,&numberpas,&coef,&skew,&kurt,&target,namcal) != 22) {
                 std::cout << "ERROR in reading calibrations catalogue, line # " << n+1 << std::endl;
@@ -550,7 +550,7 @@ int fit_cal(int nr)
         std::string temp_line;
         while (std::getline(target_cat, temp_line)) {
             temp_line = temp_line.substr(1);
-            sscanf(temp_line.c_str(), utility::FormatKAT_TAR_R, kodst, &target);
+            sscanf(temp_line.c_str(), datamodels::FormatKAT_TAR_R, kodst, &target);
             if (!strcmp(kodst, nam)) {
                 i = 1;
                 break;
@@ -708,7 +708,7 @@ int fit_cal(int nr)
         n++;
 
         if (n == nr) {
-            if (sscanf(temp_line.c_str(), utility::FormatKAT_KAL_R,
+            if (sscanf(temp_line.c_str(), datamodels::FormatKAT_KAL_R,
                        &c,&nsta,kodst,nam,&mjd,&secday,&filtr,&meanval,&rms,&corect,&temp,&baro,&humid,
                        &nflash, &nreturn,&weather,&numberpas,&coef,&skew,&kurt,&target,namcal) != 22) {
                 std::cout << "ERROR in reading calibrations catalogue, line # " << n+1 << std::endl;
@@ -738,7 +738,7 @@ int fit_cal(int nr)
 
             target = (target == 0.)?target1:target;
             char line[256];
-            sprintf(line, utility::FormatKAT_KAL_W,
+            sprintf(line, datamodels::FormatKAT_KAL_W,
                      nsta, kodst, nam, mjd, secday, filtr, meanval, rms, corect, temp,baro,
                      humid, nflash, nreturn, weather, numberpas, coef, skew1, kurt1, target, namcal);
             temp_line.clear();
@@ -825,7 +825,7 @@ int stt_epaa(int64_t numpass)
             int n = 0;
             std::string temp_line;
             while (std::getline(obs_catalogue, temp_line)) {
-                sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
+                sscanf(temp_line.c_str(), datamodels::FormatKAT_OBS_R,
                                         &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe,
                                         &npoint, &temp, &pres, &humid, &time_bias, &range_bias, &rms, &step_poly, &clock_cor);
                 ++n;
@@ -945,7 +945,7 @@ int stt_epaa(int64_t numpass)
     std::ofstream epa_dat("D:\\LASER-2\\DATA\\EPA_AUTO.DAT");
     if (epa_dat.is_open()) {
         char buf[128];
-        sprintf(buf, utility::FormatEPA_AUTO_W, nr_obs,numpass,cal_before,cal_after,nsat,namefe);
+        sprintf(buf, datamodels::FormatEPA_AUTO_W, nr_obs,numpass,cal_before,cal_after,nsat,namefe);
         epa_dat << buf << std::endl;
         epa_dat.close();
     } else {
@@ -976,7 +976,7 @@ int ffit_obs(int nr)
     jj = 0;
     std::string temp_line;
     while (std::getline(obs_catalogue, temp_line)) {
-        sscanf(temp_line.c_str() , utility::FormatKAT_OBS_R,
+        sscanf(temp_line.c_str() , datamodels::FormatKAT_OBS_R,
                                 &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe,
                                 &npoint, &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor);
         n++;
@@ -1022,7 +1022,7 @@ int ffit_obs(int nr)
     jj = 0;
     while (std::getline(efem_file, temp_line)) {
         jj++;
-        sscanf(temp_line.c_str(), utility::FormatEGA_R, &c, &sss, &azym, &elev, &ss1);
+        sscanf(temp_line.c_str(), datamodels::FormatEGA_R, &c, &sss, &azym, &elev, &ss1);
         defefe0[jj] = static_cast<double>(sss);
         defefe1[jj] = ss1;
     }
@@ -1042,7 +1042,7 @@ int ffit_obs(int nr)
     jjj=0;
     for (jj = 1; jj <= npoint; jj++) {
         std::getline(obs_copy, temp_line);
-        sscanf(temp_line.c_str(), utility::FormatCGA_R, &sec, &azym, &elev, &range1, &range, &ampl);
+        sscanf(temp_line.c_str(), datamodels::FormatCGA_R, &sec, &azym, &elev, &range1, &range, &ampl);
         range = range1*0.5e-12*299792458.0;
 
         if (jj == 1) secobs = sec;
@@ -1067,9 +1067,9 @@ int ffit_obs(int nr)
             jjj++;
             if (jjj == 1) secstart = sec;
             char buf[256];
-            sprintf(buf, utility::FormatCOPY_W, sec, azym, elev, range1, range, ampl);
+            sprintf(buf, datamodels::FormatCOPY_W, sec, azym, elev, range1, range, ampl);
             copy << buf << std::endl;
-            sprintf(buf, utility::FormatPGA_W, sec, omc, tbrb, czeb);
+            sprintf(buf, datamodels::FormatPGA_W, sec, omc, tbrb, czeb);
             derivatives_file << buf << std::endl;
         }
     }
@@ -1095,7 +1095,7 @@ int ffit_obs(int nr)
     while (std::getline(obs_catalogue, temp_line)) {
         n++;
         if (n == nr) {
-            if (sscanf(temp_line.c_str() , utility::FormatKAT_OBS_R,
+            if (sscanf(temp_line.c_str() , datamodels::FormatKAT_OBS_R,
                         &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe,
                         &npoint, &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor)!=18) {
                 obs_catalogue.close();
@@ -1113,7 +1113,7 @@ int ffit_obs(int nr)
             secday = static_cast<int64_t>(secstart);
             if(( fabs(secstart-secobs) ) > 80000.) mjd++;
             char buf[256];
-            sprintf(buf, utility::FormatKAT_OBS_W,
+            sprintf(buf, datamodels::FormatKAT_OBS_W,
                         ws, ws1, mjd, secday, nsat, nsta, kodst, namefe, npoint, temp, pres, humid, TB,
                         RB, RMS, POLY, clock_cor);
             obs_catalogue_copy << buf << std::endl;
@@ -1158,7 +1158,7 @@ int plo_fita(int nr)
     }
     std::string temp_line;
     while (std::getline(obs_catalogue, temp_line)) {
-        sscanf(temp_line.c_str() , utility::FormatKAT_OBS_R,
+        sscanf(temp_line.c_str() , datamodels::FormatKAT_OBS_R,
                                 &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe,
                                 &points, &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor);
         n++;
@@ -1233,7 +1233,7 @@ int plo_fita(int nr)
     }
     jj = 0;
     while (std::getline(satellit, temp_line)) {
-        sscanf(temp_line.c_str(), utility::FormatSATELLIT_R, &NAMSAT,&NSAT,&ss2,&ss2,&ss2,&ss2,&ss2,&ss2);
+        sscanf(temp_line.c_str(), datamodels::FormatSATELLIT_R, &NAMSAT,&NSAT,&ss2,&ss2,&ss2,&ss2,&ss2,&ss2);
         if (NSAT == nsat) {
             jj = 1;
             break;
@@ -1271,7 +1271,7 @@ int plo_fita(int nr)
     QVector<double> X(points), Y(points);
     for (jj = 0; jj < points; ++jj) {
         std::getline(derivatives_file, temp_line);
-        sscanf(temp_line.c_str(), utility::FormatPGA_R, &sec,&omc,&tbrb,&czeb);
+        sscanf(temp_line.c_str(), datamodels::FormatPGA_R, &sec,&omc,&tbrb,&czeb);
         X[jj] = sec;
         if(kk == 1) Y[jj] = omc;
         if(kk == 2) Y[jj] = tbrb;
@@ -1365,13 +1365,13 @@ int plo_fita(int nr)
     }
     for (n=0, j=0; n < points; n++) {
         std::getline(obs_copy, temp_line);
-        sscanf(temp_line.c_str(), utility::FormatCGA_R, &sec,&omc,&tbrb,&czeb,&s1,&i);
+        sscanf(temp_line.c_str(), datamodels::FormatCGA_R, &sec,&omc,&tbrb,&czeb,&s1,&i);
         Xbackup[n] = sec;
         if (!p->isPointDropped[n]) {
             j++;
             if (j == 1)	secobs = static_cast<int64_t>(sec);
             char buf[256];
-            sprintf(buf, utility::FormatCOPY_W, sec,omc,tbrb,czeb,s1,i);
+            sprintf(buf, datamodels::FormatCOPY_W, sec,omc,tbrb,czeb,s1,i);
             robcop << buf << std::endl;
         }
     }
@@ -1395,10 +1395,10 @@ int plo_fita(int nr)
     }
     for (n=0; n < points; n++) {
         std::getline(derivatives_file, temp_line);
-        sscanf(temp_line.c_str(), utility::FormatPGA_R, &sec,&omc,&tbrb,&czeb);
+        sscanf(temp_line.c_str(), datamodels::FormatPGA_R, &sec,&omc,&tbrb,&czeb);
         if (!p->isPointDropped[n]) {
             char buf[256];
-            sprintf(buf, utility::FormatPGA_W, Xbackup[n],omc,tbrb,czeb);
+            sprintf(buf, datamodels::FormatPGA_W, Xbackup[n],omc,tbrb,czeb);
             robkop << buf << std::endl;
         }
     }
@@ -1423,7 +1423,7 @@ int plo_fita(int nr)
         i++;
         char buf[256];
         if (i == nr) {
-            if (sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
+            if (sscanf(temp_line.c_str(), datamodels::FormatKAT_OBS_R,
                        &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe, &points,
                        &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor) != 18) {
                 std::cout << "\nERROR reading observations catalogue in pasint_a: line # " << n << std::endl;
@@ -1435,7 +1435,7 @@ int plo_fita(int nr)
             points = j;
             if(secday > secobs)					mjd++;
             secday = secobs;
-            sprintf(buf, utility::FormatKAT_OBS_W,
+            sprintf(buf, datamodels::FormatKAT_OBS_W,
                         ws, ws1, mjd, secday, nsat, nsta, kodst, namefe, points, temp, pres, humid, TB,
                         RB, RMS, POLY, clock_cor);
             obs_catalogue_copy << buf << std::endl;
@@ -1486,7 +1486,7 @@ int plo_nql(int nr)
     n = 0;
     std::string temp_line;
     while (std::getline(obs_catalogue, temp_line)) {
-        sscanf(temp_line.c_str() , utility::FormatKAT_OBS_R,
+        sscanf(temp_line.c_str() , datamodels::FormatKAT_OBS_R,
                                 &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe,
                                 &npoint, &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor);
         n++;
@@ -1516,7 +1516,7 @@ int plo_nql(int nr)
     }
     j = -1;
     while(std::getline(satellit, temp_line)) {
-        sscanf(temp_line.c_str(), utility::FormatSATELLIT_R,&NAMSAT,&NSAT,&xx1,&xx1,&xx1,&xx1,&NOR_POINT,&day_y);
+        sscanf(temp_line.c_str(), datamodels::FormatSATELLIT_R,&NAMSAT,&NSAT,&xx1,&xx1,&xx1,&xx1,&NOR_POINT,&day_y);
         if (NSAT==nsat) {
             j=1;
             break;
@@ -1562,7 +1562,7 @@ int plo_nql(int nr)
     QVector<double> X(npoint), Y(npoint);
     for (jj = 0; jj<npoint; ++jj) {
         std::getline(derivatives_file, temp_line);
-        sscanf(temp_line.c_str(), utility::FormatPGA_R, &sec,&omc,&tbrb,&czeb);
+        sscanf(temp_line.c_str(), datamodels::FormatPGA_R, &sec,&omc,&tbrb,&czeb);
         X[jj] = sec;
         Y[jj] = czeb;
     }
@@ -1714,7 +1714,7 @@ int pasint_a(int nr)
     n = 0;
     std::string temp_line;
     while (std::getline(obs_catalogue, temp_line)) {
-        sscanf(temp_line.c_str() , utility::FormatKAT_OBS_R,
+        sscanf(temp_line.c_str() , datamodels::FormatKAT_OBS_R,
                                 &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe,
                                 &npoint, &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor);
         n++;
@@ -1748,7 +1748,7 @@ int pasint_a(int nr)
         return 5;
     }
     std::getline(obs_copy, temp_line);
-    sscanf(temp_line.c_str(), utility::FormatCGA_R, &sec, &azym, &elev, &range1, &range, &ampl);
+    sscanf(temp_line.c_str(), datamodels::FormatCGA_R, &sec, &azym, &elev, &range1, &range, &ampl);
 
     timest = sec;
     defobs0[1] = sec;
@@ -1758,7 +1758,7 @@ int pasint_a(int nr)
 
     for (i = 2; i <= npoint; i++) {
         std::getline(obs_copy, temp_line);
-        sscanf(temp_line.c_str(), utility::FormatCGA_R, &sec, &azym, &elev, &range1, &range, &ampl);
+        sscanf(temp_line.c_str(), datamodels::FormatCGA_R, &sec, &azym, &elev, &range1, &range, &ampl);
         if (defobs0[1] > sec) sec += 86400.;
         defobs0[i] = sec;
         defobs1[i] = range;
@@ -1782,7 +1782,7 @@ int pasint_a(int nr)
     i = 0;
     while(std::getline(efem_file, temp_line)) {
         i++;
-        sscanf(temp_line.c_str(), utility::FormatEGA_R, &c, &sss, &azym, &elev, &ss1);
+        sscanf(temp_line.c_str(), datamodels::FormatEGA_R, &c, &sss, &azym, &elev, &ss1);
         defefe0[i] = static_cast<double>(sss);
         defefe1[i] = ss1;
     }
@@ -1913,7 +1913,7 @@ e303:	continue;
 
         if (sec > 86400.) sec -= 86400.;
         char buf[256];
-        sprintf(buf, utility::FormatPGA_W, sec, omc, x1, 0.);
+        sprintf(buf, datamodels::FormatPGA_W, sec, omc, x1, 0.);
         derivatives_file << buf << std::endl;
     }
     derivatives_file.close();
@@ -1935,7 +1935,7 @@ e303:	continue;
         n++;
         char buf[256];
         if (n == nr) {
-            if (sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
+            if (sscanf(temp_line.c_str(), datamodels::FormatKAT_OBS_R,
                        &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe, &npoint,
                        &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor) != 18) {
                 std::cout << "\nERROR reading observations catalogue in pasint_a: line # " << n << std::endl;
@@ -1947,7 +1947,7 @@ e303:	continue;
             ws = 2;
             TB = tx*1000.;
             RB = s1;
-            sprintf(buf, utility::FormatKAT_OBS_W,
+            sprintf(buf, datamodels::FormatKAT_OBS_W,
                         ws, ws1, mjd, secday, nsat, nsta, kodst, namefe, npoint, temp, pres, humid, TB,
                         RB, RMS, POLY, clock_cor);
             obs_catalogue_copy << buf << std::endl;
@@ -2019,7 +2019,7 @@ int pol_epaa(int nr)
     n = 0;
     std::string temp_line;
     while (std::getline(obs_catalogue, temp_line)) {
-        sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
+        sscanf(temp_line.c_str(), datamodels::FormatKAT_OBS_R,
                                 &_, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe,
                                 &npoint, &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor);
         n++;
@@ -2063,7 +2063,7 @@ int pol_epaa(int nr)
     for(i=1;i<=npoint;i++)
     {
         std::getline(derivatives_file, temp_line);
-        sscanf(temp_line.c_str(),utility::FormatPGA_R,&ss1,&sa,&ss2,&ddd);
+        sscanf(temp_line.c_str(),datamodels::FormatPGA_R,&ss1,&sa,&ss2,&ddd);
         def0[i]=ss1;
         def1[i]=ss2;
     }
@@ -2288,9 +2288,9 @@ int pol_epaa(int nr)
     for(i=1;i<=npoint;i++)
     {
         std::getline(derivatives_file, temp_line);
-        sscanf(temp_line.c_str(), utility::FormatPGA_R, &ss1,&sl,&ss2,&ddd);
+        sscanf(temp_line.c_str(), datamodels::FormatPGA_R, &ss1,&sl,&ss2,&ddd);
         char buf[256];
-        sprintf(buf,utility::FormatPGA_W,ss1,sl,ss2,static_cast<double>(jjx[i][mx-1])*1.e-4);
+        sprintf(buf,datamodels::FormatPGA_W,ss1,sl,ss2,static_cast<double>(jjx[i][mx-1])*1.e-4);
         derivatives_copy << buf << std::endl;
     }
     derivatives_copy.close();
@@ -2316,7 +2316,7 @@ int pol_epaa(int nr)
         n++;
         char buf[256];
         if (n == nr) {
-            if (sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
+            if (sscanf(temp_line.c_str(), datamodels::FormatKAT_OBS_R,
                        &_, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe, &npoint,
                        &temp, &pres, &humid, &TB, &RB, &sl, &jj, &clock_cor) != 18) {
                 std::cout << "\nERROR reading observations catalogue in pol_epaa: line # " << n << std::endl;
@@ -2330,7 +2330,7 @@ int pol_epaa(int nr)
             ws = 3;
             sl=RMS*2.e+9/c_vel;
             jj=POLY;
-            sprintf(buf, utility::FormatKAT_OBS_W,
+            sprintf(buf, datamodels::FormatKAT_OBS_W,
                         ws, ws1, mjd, secday, nsat, nsta, kodst, namefe, npoint, temp, pres, humid, TB,
                         RB, sl, jj, clock_cor);
             obs_catalogue_copy << buf << std::endl;
@@ -2383,7 +2383,7 @@ int graf_ep0(int nr)
     n = 0;
     std::string temp_line;
     while (std::getline(obs_catalogue, temp_line)) {
-        sscanf(temp_line.c_str() , utility::FormatKAT_OBS_R,
+        sscanf(temp_line.c_str() , datamodels::FormatKAT_OBS_R,
                                 &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe,
                                 &npoint, &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor);
         n++;
@@ -2415,7 +2415,7 @@ int graf_ep0(int nr)
     for(n = 1, np = 0; n <= npoint; n++)
     {
         std::getline(derivatives_file, temp_line);
-        sscanf(temp_line.c_str(),utility::FormatPGA_R,&time,&omc1,&omc2,&omc3);
+        sscanf(temp_line.c_str(),datamodels::FormatPGA_R,&time,&omc1,&omc2,&omc3);
         plo[n] = omc3;
         if (fabs(omc3) <= rms) np++;
     }
@@ -2508,18 +2508,18 @@ L_9:
     jj=0;	mean=0.0;
     for(i=1;i<=npoint;i++) {
         std::getline(derivatives_file, temp_line);
-        sscanf(temp_line.c_str(),utility::FormatPGA_R,&time,&omc1,&omc2,&omc3);
+        sscanf(temp_line.c_str(),datamodels::FormatPGA_R,&time,&omc1,&omc2,&omc3);
         std::getline(obs_copy, temp_line);
-        sscanf(temp_line.c_str(),utility::FormatCGA_R,&sec,&azym,&elev,&range1,&range,&ampl);
+        sscanf(temp_line.c_str(),datamodels::FormatCGA_R,&sec,&azym,&elev,&range1,&range,&ampl);
 
         if(fabs(omc3)<=rms) {
             jj++;
             if(jj == 1) secobs = sec;
             mean+=omc3*omc3;
             char buf[256];
-            sprintf(buf,utility::FormatCOPY_W,sec,azym,elev,range1,range,ampl);
+            sprintf(buf,datamodels::FormatCOPY_W,sec,azym,elev,range1,range,ampl);
             robcop << buf << std::endl;
-            sprintf(buf,utility::FormatPGA_W,sec,omc1,omc2,omc3);
+            sprintf(buf,datamodels::FormatPGA_W,sec,omc1,omc2,omc3);
             robcze << buf << std::endl;
         }
     }
@@ -2556,7 +2556,7 @@ L_9:
         n++;
         char buf[256];
         if (n == nr) {
-            if (sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
+            if (sscanf(temp_line.c_str(), datamodels::FormatKAT_OBS_R,
                        &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe, &npoint,
                        &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor) != 18) {
                 std::cout << "\nERROR reading observations catalogue in graf_ep0: line # " << n << std::endl;
@@ -2573,7 +2573,7 @@ L_9:
             secday = static_cast<int64_t>(secobs);
             RMS=sqrt(mean/static_cast<double>(npoint-POLY))*2.e+9/c_vel;
 
-            sprintf(buf, utility::FormatKAT_OBS_W,
+            sprintf(buf, datamodels::FormatKAT_OBS_W,
                         ws, ws1, mjd, secday, nsat, nsta, kodst, namefe, npoint, temp, pres, humid, TB,
                         RB, RMS, POLY, clock_cor);
             obs_catalogue_copy << buf << std::endl;
@@ -2628,7 +2628,7 @@ int del_npt(int nr)
     n = 0;
     std::string temp_line;
     while (std::getline(obs_catalogue, temp_line)) {
-        sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
+        sscanf(temp_line.c_str(), datamodels::FormatKAT_OBS_R,
                                 &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe,
                                 &npoint, &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor);
         n++;
@@ -2663,7 +2663,7 @@ int del_npt(int nr)
     }
     j = -1;
     while(std::getline(satellit, temp_line)) {
-        sscanf(temp_line.c_str(), utility::FormatSATELLIT_R,&NAMSAT,&NSAT,&ss1,&ss1,&ss1,&ss1,&ss1,&day_y);
+        sscanf(temp_line.c_str(), datamodels::FormatSATELLIT_R,&NAMSAT,&NSAT,&ss1,&ss1,&ss1,&ss1,&ss1,&day_y);
         if (NSAT==nsat) {
             j=1;
             break;
@@ -2693,7 +2693,7 @@ int del_npt(int nr)
     for(jj=1;jj<=npoint;jj++)
     {
         std::getline(derivatives_file, temp_line);
-        sscanf(temp_line.c_str(),utility::FormatPGA_R,&sec,&omc1,&omc2,&omc3);
+        sscanf(temp_line.c_str(),datamodels::FormatPGA_R,&sec,&omc1,&omc2,&omc3);
         plo0[jj]=sec;
         plo1[jj]=omc3;
     }
@@ -2819,9 +2819,9 @@ int del_npt(int nr)
 
     for(i=1,jj=0;i<=npoint;i++) {
         std::getline(derivatives_file, temp_line);
-        sscanf(temp_line.c_str(),utility::FormatPGA_R,&tim,&omc1,&omc2,&omc3);
+        sscanf(temp_line.c_str(),datamodels::FormatPGA_R,&tim,&omc1,&omc2,&omc3);
         std::getline(obs_copy, temp_line);
-        sscanf(temp_line.c_str(),utility::FormatCGA_R,&sec,&azym,&elev,&range1,&range,&ampl);
+        sscanf(temp_line.c_str(),datamodels::FormatCGA_R,&sec,&azym,&elev,&range1,&range,&ampl);
 
         if( ind[i] == 1) {
             jj++;
@@ -2855,7 +2855,7 @@ int del_npt(int nr)
         n++;
         char buf[256];
         if (n == nr) {
-            if (sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
+            if (sscanf(temp_line.c_str(), datamodels::FormatKAT_OBS_R,
                        &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe, &npoint,
                        &temp, &pres, &humid, &TB, &RB, &RMS, &POLY, &clock_cor) != 18) {
                 std::cout << "\nERROR reading observations catalogue in graf_ep0: line # " << n << std::endl;
@@ -2873,7 +2873,7 @@ int del_npt(int nr)
             RMS=0.;
             POLY=0;
             ws=2;
-            sprintf(buf, utility::FormatKAT_OBS_W,
+            sprintf(buf, datamodels::FormatKAT_OBS_W,
                         ws, ws1, mjd, secday, nsat, nsta, kodst, namefe, npoint, temp, pres, humid, TB,
                         RB, RMS, POLY, clock_cor);
             obs_catalogue_copy << buf << std::endl;
@@ -2932,7 +2932,7 @@ int cat_kboa(int64_t numpass)
     sky = -1;
     n = 0;
     while (std::getline(obs_catalogue, temp_line)) {
-        sscanf(temp_line.c_str(), utility::FormatKAT_OBS_R,
+        sscanf(temp_line.c_str(), datamodels::FormatKAT_OBS_R,
                                 &c, &ws, &ws1, &mjd, &secday, &nsat, &nsta, kodst, namefe,
                                 &npoint, &temp, &pres, &humid, &time_bias, &range_bias, &rms, &step_poly, &clock_cor);
         n++;
@@ -2984,9 +2984,9 @@ int cat_kboa(int64_t numpass)
     }
 
     std::getline(derivatives_file, temp_line);
-    sscanf(temp_line.c_str(),utility::FormatPGA_R,&sec,&omc,&tbrb,&czeb);
+    sscanf(temp_line.c_str(),datamodels::FormatPGA_R,&sec,&omc,&tbrb,&czeb);
     std::getline(obs_copy, temp_line);
-    sscanf(temp_line.c_str(),utility::FormatCGA_R,&sec,&azym,&elevation,&range,&range1,&ampl);
+    sscanf(temp_line.c_str(),datamodels::FormatCGA_R,&sec,&azym,&elevation,&range,&range1,&ampl);
     elev_st=elev=static_cast<int>(elevation);
     rang_st=rang=static_cast<int>(range1);
     time_start=sec;
@@ -2997,9 +2997,9 @@ int cat_kboa(int64_t numpass)
     k_obs << buf;
     for(k=2;k<=npoint;k++) {
         std::getline(derivatives_file, temp_line);
-        sscanf(temp_line.c_str(),utility::FormatPGA_R,&sec,&omc,&tbrb,&czeb);
+        sscanf(temp_line.c_str(),datamodels::FormatPGA_R,&sec,&omc,&tbrb,&czeb);
         std::getline(obs_copy, temp_line);
-        sscanf(temp_line.c_str(),utility::FormatCGA_R,&sec,&azym,&elevation,&range,&range1,&ampl);
+        sscanf(temp_line.c_str(),datamodels::FormatCGA_R,&sec,&azym,&elevation,&range,&range1,&ampl);
 
         if(static_cast<int>(elevation)>elev) elev=static_cast<int>(elevation);
         if(static_cast<int>(range1)<rang)    rang=static_cast<int>(range1);
@@ -3034,7 +3034,7 @@ int cat_kboa(int64_t numpass)
         nr=0;
         j=-1;
         while(std::getline(cal_catalogue, temp_line)) {
-            sscanf(temp_line.c_str(), utility::FormatKAT_KAL_R, &c,&nsta,kodst,nam,&mjd1,&tim_st_cal,&filter1,&sk1,
+            sscanf(temp_line.c_str(), datamodels::FormatKAT_KAL_R, &c,&nsta,kodst,nam,&mjd1,&tim_st_cal,&filter1,&sk1,
                    &rmsk1,&corect1,&temp1,&press1,&humid1,&flash1,
                    &good_flash1,&weather,&numberpas,&coef,&skew,&kurt,&target,namcal);
             nr++;
@@ -3071,7 +3071,7 @@ int cat_kboa(int64_t numpass)
         nr=0;
         j=-1;
         while(std::getline(cal_catalogue, temp_line)) {
-            sscanf(temp_line.c_str(), utility::FormatKAT_KAL_R, &c,&nsta,kodst,nam,&mjd1,&tim_st_cal,&filter1,&sk1,
+            sscanf(temp_line.c_str(), datamodels::FormatKAT_KAL_R, &c,&nsta,kodst,nam,&mjd1,&tim_st_cal,&filter1,&sk1,
                    &rmsk1,&corect1,&temp1,&press1,&humid1,&flash1,
                    &good_flash1,&weather,&numberpas,&coef,&skew,&kurt,&target,namcal);
             nr++;
@@ -3128,7 +3128,7 @@ int cat_kboa(int64_t numpass)
         remove(namobs);
         return 5;
     }
-    sprintf(buf, utility::FormatKAT_KBO_W,
+    sprintf(buf, datamodels::FormatKAT_KBO_W,
             numpass,nsat,nsta,kodst,mjd,secday,temp,pres,humid,
             npoint,rms,sky,cal_before,cal_after,namefe,clock_cor);
     kbo_catalogue << buf << std::endl;
@@ -3163,7 +3163,7 @@ int npt_kbod(int64_t nr)
     j = -1;
     std::string temp_line;
     while(std::getline(kbo_catalogue, temp_line)) {
-        sscanf(temp_line.c_str(), utility::FormatKAT_KBO_R,
+        sscanf(temp_line.c_str(), datamodels::FormatKAT_KBO_R,
                &c,&numpass,&nsat,&nsta,kodst,&mjd,&secday,&temp,&pres,&humid,
                &npoint,&rms,&weather,&cal_before,&cal_after,namefill,&clock_cor);
 
@@ -3186,7 +3186,7 @@ int npt_kbod(int64_t nr)
     }
     j = -1;
     while(std::getline(satellit, temp_line)) {
-        sscanf(temp_line.c_str(), utility::FormatSATELLIT_R,&namfil,&nr1,&ss1,&ss1,&ss1,&ss1,&NOR_POINT,&day_y);
+        sscanf(temp_line.c_str(), datamodels::FormatSATELLIT_R,&namfil,&nr1,&ss1,&ss1,&ss1,&ss1,&NOR_POINT,&day_y);
         if (nr1==nsat) {
             j=1;
             break;
@@ -3462,7 +3462,7 @@ void nql_kbo(int64_t nr)
         }
         j=-1;
         while(std::getline(kbo_catalogue, temp_line)) {
-            sscanf(temp_line.c_str(), utility::FormatKAT_KBO_R,
+            sscanf(temp_line.c_str(), datamodels::FormatKAT_KBO_R,
                    &c,&numpass,&nsat,&nsta,kodst,&mjd,&secday,&temp,&pres,&humid,
                    &npoint,&rms,&weather,&cal_before,&cal_after,namefill,&clock_cor);
             if (nr == numpass) {
@@ -3495,7 +3495,7 @@ void nql_kbo(int64_t nr)
             j=-1;
             for(nr=1;nr<32000;nr++) {
                 std::getline(cal_catalogue, temp_line);
-                sscanf(temp_line.c_str(),utility::FormatKAT_KAL_R,
+                sscanf(temp_line.c_str(),datamodels::FormatKAT_KAL_R,
                     &c,&nsta,kodst,nam,&mjd_c1,&tim_st_cal1,&filter1,&sk1,
                     &rmsk1,&corecta,&temp_c,&press_c,&humid_c,&flash1,
                     &gf,&weather,&namberpass,&coef_c,&skew1,&kurt1,&target_c1,namcal);
@@ -3517,7 +3517,7 @@ void nql_kbo(int64_t nr)
             j=-1;
             for(nr=1;nr<32000;nr++) {
                 std::getline(cal_catalogue, temp_line);
-                sscanf(temp_line.c_str(),utility::FormatKAT_KAL_R,
+                sscanf(temp_line.c_str(),datamodels::FormatKAT_KAL_R,
                 &c,&nsta,kodst,nam,&mjd_c2,&tim_st_cal2,&filter2,&sk2,
                 &rmsk2,&corectb,&temp_c,&press_c,&humid_c,&flash2,
                 &gf,&weather,&namberpass,&coef_c,&skew2,&kurt2,&target_c2,namcal);
@@ -3536,7 +3536,7 @@ void nql_kbo(int64_t nr)
 
         j=-1;
         while(std::getline(satellit, temp_line)) {
-            sscanf(temp_line.c_str(), utility::FormatSATELLIT_R,&sat_nam,&sat_id,
+            sscanf(temp_line.c_str(), datamodels::FormatSATELLIT_R,&sat_nam,&sat_id,
                    &sic,&norad,&transponder,&i_flag,&NOR_POINT,&day_y,&shor);
             np_window = day_y;
             if (sat_id == nsat) {
@@ -3945,7 +3945,7 @@ int main(int argc, char *argv[])
     if (interimData.is_open()) {
         std::string temp_line;
         std::getline(interimData, temp_line);
-        sscanf(temp_line.c_str(), utility::FormatEPA_AUTO_R, &nr, &numpass, &cal_before, &cal_after, &nr_sat);
+        sscanf(temp_line.c_str(), datamodels::FormatEPA_AUTO_R, &nr, &numpass, &cal_before, &cal_after, &nr_sat);
         interimData.close();
     } else {
         std::cout << "Unable to open file EPA_AUTO.DAT !" << std::endl;

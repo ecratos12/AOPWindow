@@ -8,32 +8,32 @@
 
 namespace datamodels {
 
-static const char* FormatKAT_OBS_R = "%c%d%d%lld%lld%lld%d%2s%8s%d%lf%lf%d%lf%lf%lf%d%lf";
-static const char* FormatKAT_OBS_W = "e%3d%3d%6lld%6lld%8lld%5d%3s%9s%6d%6.1lf%7.1lf%3d%8.3lf%10.2lf%6.3lf%3d%7.1lf";
+const char* const FormatKAT_OBS_R = "%c%d%d%lld%lld%lld%d%2s%8s%d%lf%lf%d%lf%lf%lf%d%lf";
+const char* const FormatKAT_OBS_W = "e%3d%3d%6lld%6lld%8lld%5d%3s%9s%6d%6.1lf%7.1lf%3d%8.3lf%10.2lf%6.3lf%3d%7.1lf";
 
-static const char* FormatKAT_KBO_R = "%c%lld%lld%d%3s%lld%lld%lf%lf%d%d%lf%d%d%d%8s%lf";
-static const char* FormatKAT_KBO_W = "e%7lld%8lld%5d%3s%6lld%6lld%6.1lf%7.1lf%3d%6d%6.3lf%3d%4d%4d% 9s%7.1lf";
+const char* const FormatKAT_KBO_R = "%c%lld%lld%d%3s%lld%lld%lf%lf%d%d%lf%d%d%d%8s%lf";
+const char* const FormatKAT_KBO_W = "e%7lld%8lld%5d%3s%6lld%6lld%6.1lf%7.1lf%3d%6d%6.3lf%3d%4d%4d% 9s%7.1lf";
 
-static const char* FormatOGA_R = "%lf%lf%lf%lf%d";
-static const char* FormatCGA_W = " %20.12lf%10.4lf%8.4lf%14.3lf%15.7lf%5d";
-static const char* FormatCGA_R = " %lf%lf%lf%lf%lf%d";
-static const char* FormatEGA_R = "%c%lld%lf%lf%lf";
-static const char* FormatPGA_W = " %20.12lf%12.4lf%12.4lf%12.4lf";
-static const char* FormatPGA_R = "%lf%lf%lf%lf";
-static const char* FormatKGA_R = "%lf%lf%lf%lf%d%lf";
-static const char* FormatKGA_W = "%20.12lf%9.4lf%8.4lf%14.3lf%5d%8.4lf";
+const char* const FormatOGA_R = "%lf%lf%lf%lf%d";
+const char* const FormatCGA_W = " %20.12lf%10.4lf%8.4lf%14.3lf%15.7lf%5d";
+const char* const FormatCGA_R = " %lf%lf%lf%lf%lf%d";
+const char* const FormatEGA_R = "%c%lld%lf%lf%lf";
+const char* const FormatPGA_W = " %20.12lf%12.4lf%12.4lf%12.4lf";
+const char* const FormatPGA_R = "%lf%lf%lf%lf";
+const char* const FormatKGA_R = "%lf%lf%lf%lf%d%lf";
+const char* const FormatKGA_W = "%20.12lf%9.4lf%8.4lf%14.3lf%5d%8.4lf";
 
-static const char* FormatKAT_KAL_R = "%c%d%2s%2s%lld%lld%d%lf%lf%lf%lf%lf%d%d%d%d%lld%d%lf%lf%lf%12s";
-static const char* FormatKAT_KAL_W = "e %5d %2s %2s%6lld%6lld%4d%9.3lf%6.3lf%9.3lf%6.1lf%7.1lf%3d%5d%4d%3d%7lld%3d%7.3lf%7.3lf%12.4lf % 12s";
+const char* const FormatKAT_KAL_R = "%c%d%2s%2s%lld%lld%d%lf%lf%lf%lf%lf%d%d%d%d%lld%d%lf%lf%lf%12s";
+const char* const FormatKAT_KAL_W = "e %5d %2s %2s%6lld%6lld%4d%9.3lf%6.3lf%9.3lf%6.1lf%7.1lf%3d%5d%4d%3d%7lld%3d%7.3lf%7.3lf%12.4lf % 12s";
 
-static const char* FormatSYS_CONF_R = "%lf%s%s%s%s%s";
-static const char* FormatKAT_TAR_R = "%*d%*2s%2s%lf%*lf%*lf%*20s";
-static const char* FormatEPA_AUTO_W = "%4d%6lld%4d%4d%8lld %10s";
-static const char* FormatEPA_AUTO_R = "%d%lld%d%d%lld";
+const char* const FormatSYS_CONF_R = "%lf%s%s%s%s%s";
+const char* const FormatKAT_TAR_R = "%*d%*2s%2s%lf%*lf%*lf%*20s";
+const char* const FormatEPA_AUTO_W = "%4d%6lld%4d%4d%8lld %10s";
+const char* const FormatEPA_AUTO_R = "%d%lld%d%d%lld";
 
-static const char* FormatCOPY_W = "%20.12lf%9.4lf%8.4lf%14.3lf%15.7lf%5d";
+const char* const FormatCOPY_W = "%20.12lf%9.4lf%8.4lf%14.3lf%15.7lf%5d";
 
-static const char* FormatSATELLIT_R = "%10s%lld%d%lld%d%d%d%d%s";
+const char* const FormatSATELLIT_R = "%10s%lld%d%lld%d%d%d%d%s";
 
 
 template <typename T>
