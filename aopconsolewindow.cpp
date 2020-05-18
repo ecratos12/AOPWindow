@@ -1366,11 +1366,6 @@ void AOPConsoleWindow::fit_observation()
         if (index >= efemPoints-1) index = efemPoints-2;
         --index;
 
-        // correct copy with tropospheric delay
-        ce.range1 -= zenithDelay/1000.*
-                     utility::delayMappingElev(50.3633, 185.1, selectedObs.temp, sEfem.data[index].elev);
-        ce.range = 2.e12/C_VEL * ce.range1;
-
         t10 = defe_t[index+1]-defe_t[index];
         t20 = defe_t[index+2]-defe_t[index];
         t21 = defe_t[index+2]-defe_t[index+1];
@@ -1383,6 +1378,11 @@ void AOPConsoleWindow::fit_observation()
                     tt0*tt1/(t20*t21)*defe_r[index+2];
         double omc = (ce.range1 - re)*1000.;
 
+        if (Config::Instance()->tropoCorrection()) {
+            // edit omc with tropospheric delay
+            omc -= zenithDelay*
+                    utility::delayMappingElev(50.3633, 185.1, selectedObs.temp, sEfem.data[index].elev);
+        }
 
         if (fabs(omc) <= omclimit) {
             ++derivCount;
@@ -1549,6 +1549,10 @@ void AOPConsoleWindow::calc_TimeRangeBias()
     std::vector<double> defe_t(efemPoints), defe_r(efemPoints);
     std::vector<double> dobs_t(selectedObs.npoint), dobs_r(selectedObs.npoint);
 
+    double sx = 7.5*(selectedObs.temp-273.1)/(237.3-(selectedObs.temp-273.1));
+    double e = static_cast<double>(selectedObs.humid)*1.e-2*6.11*pow(10.,sx);
+    double zenithDelay = utility::delayZenith(50.3633, 212.9, selectedObs.pres, e, 0.532);
+
     for (int i=0; i<selectedObs.npoint; ++i) {
         dobs_t[i] = sCopy.data[i].sec;
         dobs_r[i] = sCopy.data[i].range1;
@@ -1585,6 +1589,10 @@ void AOPConsoleWindow::calc_TimeRangeBias()
              tt0*tt2/(t10*t21)*defe_r[index+1]+
              tt0*tt1/(t20*t21)*defe_r[index+2];
         omc = (dobs_r[i] - re)*1000.;
+        if (Config::Instance()->tropoCorrection()) {
+            omc -= zenithDelay*
+                    utility::delayMappingElev(50.3633, 185.1, selectedObs.temp, sEfem.data[index].elev);
+        }
         s1 += omc;
         s2 += omc*omc;
     }
@@ -1620,6 +1628,10 @@ e503:	nk++;
                  tt0*tt2/(t10*t21)*defe_r[index+1]+
                  tt0*tt1/(t20*t21)*defe_r[index+2];
             omc = (dobs_r[i] - re)*1000.;
+            if (Config::Instance()->tropoCorrection()) {
+                omc -= zenithDelay*
+                        utility::delayMappingElev(50.3633, 185.1, selectedObs.temp, sEfem.data[index].elev);
+            }
             x1 += omc;
             x2 += omc*omc;
         }
@@ -1663,6 +1675,10 @@ e303:	continue;
              tt0*tt2/(t10*t21)*defe_r[index+1]+
              tt0*tt1/(t20*t21)*defe_r[index+2];
         omc = (dobs_r[i] - re)*1000.;
+        if (Config::Instance()->tropoCorrection()) {
+            omc -= zenithDelay*
+                    utility::delayMappingElev(50.3633, 185.1, selectedObs.temp, sEfem.data[index].elev);
+        }
         sDeriv.data[i].tbrb = omc - s1;
 
         tt0 = t-defe_t[index];

@@ -55,6 +55,7 @@ public:
     std::vector<FtpSendForm> ftpDestinationList() const;
     QString archiveDir() const;
     bool doFilterCalView() const;
+    bool tropoCorrection() const;
 
     void setDefaultSelObsView(const SelObsView& a);
     void setFtpDestinationList(const std::vector<FtpSendForm>& a);
@@ -62,6 +63,7 @@ public:
     void addFtpDestination(const FtpSendForm& a);
     void setArchiveDir(const QString& a);
     void setDoFilterCalView(bool a);
+    void setTropoCorrection(bool a);
 
 signals:
     void fatal(QString errmsg);
@@ -71,6 +73,7 @@ private:
     std::vector<FtpSendForm> _ftpDestinationList;
     QString _archiveDir;
     bool _doFilterCalView; // if true - show only calibrations within 2 hours before/after selected obs
+    bool _tropoCorrection;
 };
 
 
@@ -87,7 +90,7 @@ private:
     QPushButton *addFtpDest;
     QLineEdit *archiveDirLine;
     QPushButton *archiveDirBtn;
-    QCheckBox *doFilterCalViewBox;
+    QCheckBox *doFilterCalViewBox, *tropoCorrBox;
     QDialogButtonBox *decisionBtns;
 
     QFrame *totalVisualLine;

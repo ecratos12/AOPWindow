@@ -59,6 +59,9 @@ bool Config::read(const QString &configFileName)
     // read filter cal view flag
     _doFilterCalView = json["Show cal only within 2 hours"].toBool();
 
+    // read tropospheric correction flag
+    _tropoCorrection = json["Enable O-C tropospheric correction"].toBool();
+
     return true;
 }
 
@@ -97,6 +100,9 @@ bool Config::write(const QString &configFileName)
     // write filter cal view flag
     json["Show cal only within 2 hours"] = _doFilterCalView;
 
+    // write tropospheric correction flag
+    json["Enable O-C tropospheric correction"] = _tropoCorrection;
+
     QJsonDocument d(json);
     configFile.write(d.toJson());
     configFile.close();
@@ -104,55 +110,31 @@ bool Config::write(const QString &configFileName)
     return true;
 }
 
-Config::SelObsView Config::defaultSelObsView() const
-{
-    return _defaultSelObsView;
-}
+Config::SelObsView Config::defaultSelObsView() const {return _defaultSelObsView;}
 
-std::vector<Config::FtpSendForm> Config::ftpDestinationList() const
-{
-    return _ftpDestinationList;
-}
+std::vector<Config::FtpSendForm> Config::ftpDestinationList() const {return _ftpDestinationList;}
 
-QString Config::archiveDir() const
-{
-    return _archiveDir;
-}
+QString Config::archiveDir() const {return _archiveDir;}
 
-bool Config::doFilterCalView() const
-{
-    return _doFilterCalView;
-}
+bool Config::doFilterCalView() const {return _doFilterCalView;}
 
-void Config::setDefaultSelObsView(const Config::SelObsView &a)
-{
-    _defaultSelObsView = a;
-}
+bool Config::tropoCorrection() const {return _tropoCorrection;}
 
-void Config::setFtpDestinationList(const std::vector<Config::FtpSendForm> &a)
-{
-    _ftpDestinationList = a;
-}
 
-void Config::clearFtpDestinationList()
-{
-    _ftpDestinationList.clear();
-}
+void Config::setDefaultSelObsView(const Config::SelObsView &a) {_defaultSelObsView = a;}
 
-void Config::addFtpDestination(const Config::FtpSendForm &a)
-{
-    _ftpDestinationList.push_back(a);
-}
+void Config::setFtpDestinationList(const std::vector<Config::FtpSendForm> &a) {_ftpDestinationList = a;}
 
-void Config::setArchiveDir(const QString &a)
-{
-    _archiveDir = a;
-}
+void Config::clearFtpDestinationList() {_ftpDestinationList.clear();}
 
-void Config::setDoFilterCalView(bool a)
-{
-    _doFilterCalView = a;
-}
+void Config::addFtpDestination(const Config::FtpSendForm &a) {_ftpDestinationList.push_back(a);}
+
+void Config::setArchiveDir(const QString &a) {_archiveDir = a;}
+
+void Config::setDoFilterCalView(bool a) {_doFilterCalView = a;}
+
+void Config::setTropoCorrection(bool a) {_tropoCorrection = a;}
+
 
 
 SettingsDialog::SettingsDialog(bool settingsFileExists, QWidget *parent)
@@ -210,6 +192,7 @@ SettingsDialog::SettingsDialog(bool settingsFileExists, QWidget *parent)
 
 
     archiveDirLine = new QLineEdit(this);
+    archiveDirLine->setReadOnly(true);
     if (settingsFileExists) archiveDirLine->setText(Config::Instance()->archiveDir());
     archiveDirBtn = new QPushButton("Select Folder", this);
     connect(archiveDirBtn, &QPushButton::clicked, this, [&](){
@@ -220,6 +203,10 @@ SettingsDialog::SettingsDialog(bool settingsFileExists, QWidget *parent)
     doFilterCalViewBox = new QCheckBox(this);
     if (settingsFileExists) doFilterCalViewBox->setChecked(Config::Instance()->doFilterCalView());
     else doFilterCalViewBox->setChecked(true);
+
+    tropoCorrBox = new QCheckBox(this);
+    if (settingsFileExists) tropoCorrBox->setChecked(Config::Instance()->tropoCorrection());
+    else tropoCorrBox->setChecked(true);
 
     totalVisualLine = new QFrame(this);
     totalVisualLine->setFrameShape(QFrame::HLine);
@@ -241,14 +228,17 @@ SettingsDialog::SettingsDialog(bool settingsFileExists, QWidget *parent)
     mainLayout->addWidget(archiveDirBtn, 2, 2);
     mainLayout->addWidget(new QLabel("Show calibrations ONLY within 2 hours before/after selected obs", this), 3, 0, 1, 2);
     mainLayout->addWidget(doFilterCalViewBox, 3, 2);
-    mainLayout->addWidget(totalVisualLine, 4, 0, 1, 3);
-    mainLayout->addWidget(decisionBtns, 5, 0, 1, 3);
+    mainLayout->addWidget(new QLabel("Enable tropospheric correction for O-C diagram"), 4, 0, 1, 2);
+    mainLayout->addWidget(tropoCorrBox, 4, 2);
+    mainLayout->addWidget(totalVisualLine, 5, 0, 1, 3);
+    mainLayout->addWidget(decisionBtns, 6, 0, 1, 3);
 
 
     connect(decisionBtns, &QDialogButtonBox::rejected, this, &QDialog::reject);
     connect(decisionBtns, &QDialogButtonBox::accepted, this, [&](){
+        //
         // save settings to Config and setting.json
-
+        //
         int m = defaultSelObsView_cb->currentIndex();
         if (m == 0) Config::Instance()->setDefaultSelObsView(Config::SelObsView::Table);
         if (m == 1) Config::Instance()->setDefaultSelObsView(Config::SelObsView::Tree);
@@ -267,6 +257,7 @@ SettingsDialog::SettingsDialog(bool settingsFileExists, QWidget *parent)
 
         Config::Instance()->setArchiveDir(archiveDirLine->text());
         Config::Instance()->setDoFilterCalView(doFilterCalViewBox->isChecked());
+        Config::Instance()->setTropoCorrection(tropoCorrBox->isChecked());
 
         Config::Instance()->write("settings.json");
         accept();
