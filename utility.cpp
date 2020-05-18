@@ -74,6 +74,49 @@ double utility::inter_parabola(double x0, double y0, double x1, double y1, doubl
            + y2 * (x - x0) * (x - x1) / (x2 - x0) / (x2 - x1);
 }
 
+double utility::delayZenith(double lat, double hEllips, double pres, double wpres, double l_mkm)
+{
+    double xc = 375,
+           k0 = 238.0185, k1 = 19990.975, k2 = 57.362, k3 = 579.55174,
+           w0 = 295.235, w1 = 2.6422, w2 = -0.03238, w3 = 0.004028,
+           sigma = 1./l_mkm;
+
+    double f = 1 - 0.00266*cos(2*PI/180*lat) - 2.8e-7*hEllips;
+    double corr = 1 + 0.534e-6*(xc-450);
+    double fh = 0.01*corr*((k1*(k0+sigma*sigma))/((k0-sigma*sigma)*(k0-sigma*sigma))
+                           + k3*(k2+sigma*sigma)/((k2-sigma*sigma)*(k2-sigma*sigma)));
+    double fnh = 0.003101*(w0 + 3.0*w1*sigma*sigma + 5.0*w2*pot(sigma,4) + 7.0*w3*pot(sigma,6));
+
+    double fcul_zhd = 2.416579e-3*fh*pres/f,
+           fcul_zwd = 1.e-4*(5.316*fnh-3.759*fh)*wpres/f;
+
+    return fcul_zhd + fcul_zwd;
+}
+
+double utility::delayMappingElev(double lat, double hSea, double T, double elev)
+{
+    double sine = sin(elev*PI/180.),
+           cosphi = cos(lat*PI/180.),
+           Tc = T - 273.15;
+    double  A10 =  0.121008e-02,
+            A11 =  0.17295e-05,
+            A12 =  0.3191e-04,
+            A13 = -0.18478e-07,
+            A20 =  0.304965e-02,
+            A21 =  0.2346e-05,
+            A22 = -0.1035e-03,
+            A23 = -0.1856e-07,
+            A30 =  0.68777e-01,
+            A31 =  0.1972e-04,
+            A32 = -0.3458e-02,
+            A33 =  0.1060e-06;
+    double  A1 = A10+A11*Tc+A12*cosphi+A13*hSea,
+            A2 = A20+A21*Tc+A22*cosphi+A23*hSea,
+            A3 = A30+A31*Tc+A32*cosphi+A33*hSea;
+
+    return (1 + A1/(1 + A2/(1+A3))) / (sine+A1/(sine+A2/(sine+A3)));
+}
+
 
 void utility::FanFilter::minmax()
 {

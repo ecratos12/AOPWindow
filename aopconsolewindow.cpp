@@ -1337,6 +1337,10 @@ void AOPConsoleWindow::fit_observation()
     int efemPoints = sEfem.data.size();
     std::vector<double> defe_t(efemPoints, 0.), defe_r(efemPoints, 0.);
 
+    double sx = 7.5*(selectedObs.temp-273.1)/(237.3-(selectedObs.temp-273.1));
+    double e = static_cast<double>(selectedObs.humid)*1.e-2*6.11*pow(10.,sx);
+    double zenithDelay = utility::delayZenith(50.3633, 212.9, selectedObs.pres, e, 0.532);
+
     for (int i=0; i<efemPoints; ++i) {
         defe_t[i] = sEfem.data[i].sec;
         defe_r[i] = sEfem.data[i].range;
@@ -1361,6 +1365,11 @@ void AOPConsoleWindow::fit_observation()
         if (index < 1) index=1;
         if (index >= efemPoints-1) index = efemPoints-2;
         --index;
+
+        // correct copy with tropospheric delay
+        ce.range1 -= zenithDelay/1000.*
+                     utility::delayMappingElev(50.3633, 185.1, selectedObs.temp, sEfem.data[index].elev);
+        ce.range = 2.e12/C_VEL * ce.range1;
 
         t10 = defe_t[index+1]-defe_t[index];
         t20 = defe_t[index+2]-defe_t[index];

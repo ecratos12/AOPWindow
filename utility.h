@@ -10,6 +10,11 @@
 
 namespace utility {
 
+/* constants */
+
+static const double C = 299792458;
+static const double PI = 3.1415926535897932384626433;
+
 /* date & time functions */
 
 void mjd_dat(int &d, int &m, int &y, int64_t mjd);
@@ -25,6 +30,14 @@ double pot(double x, int l);
 double inter_parabola(double x0, double y0,
                       double x1, double y1,
                       double x2, double y2, double x);
+
+/* atmosperic refraction */
+
+// used model Mendes and Pavlis, 2004
+// see ftp://tai.bipm.org/iers/conv2010/chapter9 for details
+
+double delayZenith(double lat, double hEllips, double pres, double wpres, double l);
+double delayMappingElev(double lat, double hSea, double T, double elev);
 
 
 void filter_omc(QVector<double> &x, QVector<double> &y,
